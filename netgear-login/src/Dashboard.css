@@ -1,0 +1,427 @@
+/* ============================================
+   src/Dashboard.css  — Full file (final) (edited)
+   - Per-card heights (.vpn-card / .vlan-card)
+   - IPv4/IPv6 underline when JSON booleans are true (use .active)
+   - Remove unwanted paddings in right column so columns end at same point
+   - Prevent inner scroll panes for small right-cards
+   - Dark + Light + responsive kept
+   ============================================ */
+
+/* THEME VARIABLES (light defaults) */
+:root{
+  --bg: #f4f7fb;
+  --card-bg: #ffffff;
+  --muted: #6b7682;
+  --accent: #0064e0;
+  --accent-strong: #1f6feb;
+  --border: #e6edf3;
+  --radius: 10px;
+
+  --label-w: 120px;    /* label column width for desktop */
+  --sidebar-w: 220px;  /* left nav width */
+  --right-w: 360px;    /* right column width */
+  --gap: 20px;
+
+  --h-connectivity: 580px;
+  --h-system: 320px;
+  --h-internet: 240px;
+  --h-small-card: 150px;
+  --h-small-card1: 300px;
+  --h-small-card2: 150px;
+
+  
+}
+
+/* DARK MODE variables override */
+.theme-dark {
+  --bg: #0d1117;
+  --card-bg: #161b22;
+  --muted: #9da5b4;
+  --accent: #1f6feb;
+  --accent-strong: #1f6feb;
+  --border: #30363d;
+}
+
+/* global resets */
+* { box-sizing: border-box; }
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  background: var(--bg);
+  color: #172031;
+}
+
+.theme-dark, .theme-dark body, .theme-dark #root {
+  background: var(--bg);
+  color: var(--muted);
+}
+
+/* DASHROOT & HEADER */
+.dash-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+}
+
+.dash-header {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr var(--right-w);
+  align-items: center;
+  gap: 12px;
+  padding: 14px 24px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+/* left block */
+.header-left { display:flex; align-items:center; gap:12px; }
+.brand { font-weight:700; color:#0f1724; font-size:18px; }
+
+/* center header */
+.header-desc {
+  display:flex;
+  gap:18px;
+  justify-content:center;
+  align-items:center;
+  white-space:nowrap;
+  overflow: hidden;
+  padding: 0 8px;
+  margin: 0;
+}
+.header-desc .model {
+  font-weight:600;
+  font-size:14px;
+  color:#0b1220;
+  margin:0;
+  padding:0;
+  white-space:nowrap;
+  max-width: 60%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.header-desc .header-sub {
+  font-size:12px;
+  color:#5b6b78;
+  margin:0;
+  padding:0;
+  white-space:nowrap;
+  max-width: 40%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* right header icons */
+.header-right { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
+.icon-btn { background:transparent; border:none; padding:6px; border-radius:8px; cursor:pointer; }
+.hdr-icon { width:20px; height:20px; }
+
+/* language badge */
+.lang-wrap { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); }
+.lang-text { font-weight:600; font-size:13px; color:var(--muted); }
+
+/* DASH GRID LAYOUT
+   IMPORTANT: use align-items: stretch so columns end at the same baseline.
+*/
+.dash-grid {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr 1fr var(--right-w);
+  gap: var(--gap);
+  padding: 20px;
+  align-items: stretch; /* CHANGE: stretch columns so they end at same point */
+  width: calc(100% - 40px);
+  margin: 0 auto;
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 18px;
+  height: var(--h-connectivity);
+  box-shadow: 0 6px 18px rgba(15,23,42,0.03);
+  overflow: hidden;
+}
+.sidebar ul { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:6px; }
+.sidebar li { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:8px; cursor:pointer; font-weight:600; color:#0b1220; }
+.sidebar li.active { background:#e8f0ff; color:#0b2a66; }
+
+/* CARD BASE */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  color: inherit;
+}
+.card-title { font-size:15px; font-weight:700; color:inherit; padding-bottom:8px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+
+/* card-body: scrollable area */
+.card-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px;
+  color: var(--muted);
+}
+
+/* footer */
+.card-footer { flex: 0 0 auto; margin-top:12px; padding-top:8px; border-top:1px solid var(--border); display:flex; gap:8px; }
+.btn { padding:8px 12px; border-radius:8px; background:var(--accent); color:white; border:none; cursor:pointer; font-weight:600; box-shadow:none; }
+.btn.muted { background:#eef2f8; color:#243449; }
+
+/* CARD SIZES */
+.connectivity-card { height: var(--h-connectivity); display:flex; flex-direction:column; width: 300px; }
+.system-card { height: var(--h-system); display:flex; flex-direction:column;width:495px; }
+.internet-port-card { height: var(--h-internet); display:flex; flex-direction:column; }
+
+/* generic small cards in right column — keep but we'll override per-card below */
+.right-col .small-card { height: var(--h-small-card); display:flex; flex-direction:column; }
+
+/* right column layout — remove extra bottom padding so columns line up */
+.right-col { display:flex; flex-direction:column; gap: var(--gap); padding-bottom: 0; }
+
+/* SYSTEM GRID – label/value */
+.system-grid {
+  display: grid;
+  grid-template-columns: var(--label-w) 1fr;
+  row-gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.kv-label {
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kv-value {
+  text-align: right;
+  font-weight: 700;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* KVRow helper */
+.kv-row { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:6px 0; min-height:28px; }
+.kv-left { font-weight:700; color:var(--muted); min-width: var(--label-w); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.kv-right { text-align:right; font-weight:700; color:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+
+/* Slightly smaller fonts in small cards */
+.right-col .small-card .card-body,
+.card.small-card .card-body { font-size: 13px; padding: 6px 6px; } /* reduced padding to remove unwanted gaps */
+
+/* CONNECTIVITY & INTERNET rows */
+.col-connectivity { display:flex; flex-direction:column; gap:12px; }
+.col-connectivity .card-body > div,
+/* Push Internet Port Status value fully to the right */
+.internet-port-card .card-body > div > div:last-child {
+  flex: 1;
+  text-align: right;
+  padding-right: 4px; /* adjust if you want even more right */
+}
+
+.col-connectivity .card-body div > div:first-child,
+.internet-port-card .card-body div > div:first-child {
+  font-weight:700;
+  color:var(--muted);
+  min-width: var(--label-w);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+/* ETHERNET TABLE */
+.eth-table { width:100%; border-collapse:collapse; font-size:13px; color:inherit; }
+.eth-table th, .eth-table td { padding:8px 6px; border-bottom:1px solid rgba(15,23,42,0.04); vertical-align: middle; }
+.eth-table td:first-child { width: 110px; font-weight:700; }
+
+/* VPN (keeps previous robust rules) */
+/* Use grid layout so the values always sit horizontally across from headings */
+.vpn-table {
+  width: 100%;
+  font-size: 13px;
+  color: inherit;
+  margin: 0;
+}
+.vpn-header {
+  display: grid;
+  grid-template-columns: var(--label-w) repeat(3, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 6px;
+}
+.vpn-name-head { text-align: left; font-weight: 700; color: var(--muted); padding: 3px 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vpn-col-label { font-weight: 500; color: var(--muted); padding: 3px 2px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vpn-divider { display: block; height: 1px; background: var(--border); margin: 3px 0 4px 0; }
+.vpn-row { display: grid; grid-template-columns: var(--label-w) repeat(3, 1fr); gap: 4px 3px; align-items: center; width: 100%; padding: 2px 0; }
+.vpn-name { padding: 4px 3px; font-weight: 700; color: inherit; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vpn-val { padding: 4px 3px; font-weight: 800; color: inherit; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* VLAN UI styles */
+/* Tabs container */
+.vlan-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+/* Tab button */
+.vlan-tab {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  font-weight: 700;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  line-height: 1;
+  
+}
+
+/* visible blue underline for active tab */
+.vlan-tab.active {
+  color: var(--accent-strong);
+  border-bottom-color: var(--accent-strong);
+}
+
+/* optionally show small blue dot when protocol enabled */
+.vlan-tab.enabled::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-strong);
+  border-radius: 50%;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* disabled style (protocol not available) */
+.vlan-tab.disabled { opacity: 0.5; }
+
+/* VLAN select styling */
+.vlan-select {
+  padding: 4px 5px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  font-weight: 600;
+  color: inherit;
+}
+.theme-dark .vlan-select { border-color: var(--border); background: #111418; color: var(--muted); }
+
+/* dark tweaks */
+.theme-dark .vpn-col-label,
+.theme-dark .vpn-name-head,
+.theme-dark .vpn-name {
+  color: var(--muted);
+}
+.theme-dark .vpn-divider { background: var(--border); }
+
+/* responsiveness */
+@media (max-width: 900px) {
+  .vpn-header, .vpn-row { grid-template-columns: calc(var(--label-w) - 16px) repeat(3, 1fr); }
+  .vpn-col-label { font-size: 12px; }
+  .vpn-val { font-size: 13px; }
+}
+
+@media (max-width: 520px) {
+  .vpn-header, .vpn-row { grid-template-columns: 1fr repeat(3, minmax(56px, 1fr)); gap: 6px 8px; }
+  .vpn-col-label { text-align: left; }
+  .vpn-val { text-align: left; }
+  .vpn-name, .vpn-name-head { padding-left: 8px; }
+  .vpn-col-label, .vpn-val { padding-left: 8px; padding-right: 8px; }
+  .vpn-divider { margin: 6px 0; }
+
+  /* tabs become compact */
+  .vlan-tabs { gap: 6px; }
+  .vlan-tab { padding: 6px 8px; font-size: 13px; }
+}
+
+/* VISUAL TWEAKS */
+.card .divider { height:1px; background:var(--border); margin:8px 0; border-radius:2px; }
+
+/* scrollbar styling */
+.card-body::-webkit-scrollbar { width:10px; height:8px; }
+.card-body::-webkit-scrollbar-thumb { background: rgba(20,40,60,0.06); border-radius:6px; }
+.theme-dark .card-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); }
+
+/* focus outlines */
+.icon-btn:focus, .btn:focus, .logout-btn:focus { outline:2px solid rgba(37,99,235,0.18); outline-offset:2px; box-shadow:0 0 0 4px rgba(37,99,235,0.04); }
+
+/* responsive layout adjustments */
+@media (max-width: 1400px) {
+  :root { --label-w: 110px; }
+  .header-desc .model { max-width: 54%; }
+  .header-desc .header-sub { max-width: 46%; }
+}
+
+@media (max-width:1100px) {
+  .dash-grid { grid-template-columns: 260px 1fr; padding:16px; gap:16px; }
+  :root { --label-w: 96px; --h-connectivity: 420px; --h-system: 240px; --h-internet: 240px; --h-small-card: auto; }
+  .header-desc { grid-column: 1 / -1; justify-content:flex-start; padding-left:12px; white-space:nowrap; }
+  .dash-header { grid-template-columns: 180px 1fr; }
+  .kv-left { min-width: 120px; }
+}
+
+@media (max-width:767px) {
+  .dash-grid { grid-template-columns: 1fr; padding:12px; gap:14px; }
+  .sidebar { height:auto; }
+  .header-desc { display:none; }
+  :root { --label-w: 120px; --h-connectivity:auto; --h-system:auto; --h-internet:auto; --h-small-card:auto; }
+  .right-col { display:flex; flex-direction:row; gap:12px; overflow-x:auto; padding-bottom:6px; }
+  .right-col .small-card { min-width:240px; flex:0 0 auto; }
+  .kv-value { text-align:left; }
+}
+
+/* Footer */
+.footer { margin-top:12px; padding:12px 8px; text-align:center; color:var(--muted); border-top:1px solid var(--border); }
+
+/* =======================================================
+   Per-card overrides (place after generic .right-col .small-card)
+   Edit these heights to change VPN/VLAN size — uses vars set in :root
+   ======================================================= */
+
+/* VPN card: uses --h-small-card1 (default 250px) */
+/* VPN card height → change this */
+.vpn-card {
+  height: 250px;             /* ← change this value */
+  display: flex;
+  flex-direction: column;
+}
+
+/* VLAN card height → change this */
+.vlan-card {
+  height: 100px;   /* ← either change var or replace with px */
+  display: flex;
+  flex-direction: column;
+}
+/* Ensure small right-cards do not create inner scroll panes and content is visible */
+.vpn-card .card-body,
+.vlan-card .card-body {
+  overflow: visible !important;
+  padding: 6px; /* smaller padding to help columns line up */
+}
+
+/* END */

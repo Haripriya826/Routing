@@ -1,0 +1,297 @@
+/* src/App.css - refined light login card on white right panel + label mask fix + dark focus accent */
+:root{
+  --accent-start: #0ea5a3;
+  --accent-end: #60a5fa;
+  --muted: #7b8591;
+  --card-bg: rgba(255,255,255,0.98);
+  --card-border: rgba(15,23,42,0.06);
+  --input-border: rgba(15,23,42,0.08);
+  --focus-border: rgba(2,6,23,0.32);
+  --focus-shadow: 0 10px 30px rgba(2,6,23,0.10);
+  --shadow: 0 20px 40px rgba(2,6,23,0.08);
+  --glass: rgba(255,255,255,0.75);
+
+  --error-red: #d62828; /* 🔥 for incorrect login */
+}
+
+*{box-sizing:border-box}
+html,body,#root{
+  height:100%;
+  margin:0;padding:0;
+  font-family:Inter,system-ui,Arial,sans-serif;
+  background:linear-gradient(180deg,#071124 0%, #081428 100%);
+  color:#111;
+}
+
+.page{
+  display:flex;
+  min-height:100vh;
+  align-items:stretch;
+}
+
+/* LEFT PANEL */
+.left-panel{
+  width:42%;
+  min-width:320px;
+  background: linear-gradient(135deg,#071635 0%, #04233d 100%);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:48px 32px;
+}
+.left-inner{ text-align:left; width:100%; max-width:420px; }
+.product-title{ margin:0; font-size:40px; letter-spacing:2px; }
+.divider{
+  width:200px;height:4px;
+  background:linear-gradient(90deg,var(--accent-start),#7dd3fc);
+  margin:16px 0;border-radius:4px;
+}
+.subtitle{ margin:0 0 18px 0; color:rgba(255,255,255,0.75); line-height:1.4; font-size:15px; }
+.device-img{ width:100%; max-width:360px; margin-top:20px; opacity:0.95; }
+
+/* RIGHT PANEL */
+.right-panel{
+  flex:1;
+  padding:80px 48px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  background:#ffffff;
+  color:#111;
+}
+
+.logo{
+  position:absolute;
+  top:28px;
+  left:48px;
+  font-weight:700;
+  color:steelblue;
+  letter-spacing:4px;
+}
+
+/* LOGIN FORM CARD */
+.login-form{
+  width:420px;
+  max-width:92%;
+  background: var(--card-bg);
+  border-radius:12px;
+  padding:28px 28px 30px 28px;
+  box-shadow: var(--shadow);
+  border:1px solid var(--card-border);
+  transition: transform 220ms cubic-bezier(.2,.9,.3,1), box-shadow 220ms;
+}
+
+.login-title{ margin:0 0 8px 0; font-size:20px; color:#111; }
+.login-sub{ margin:0 0 18px 0; color:var(--muted); font-size:13px; }
+
+/* FLOATING INPUT GROUP */
+.floating-group{
+  position:relative;
+  width:100%;
+  margin-bottom:16px;
+  z-index:0;
+}
+
+/* INPUT */
+.input-field{
+  width:100%;
+  padding:14px 44px 14px 14px;
+  border-radius:8px;
+  font-size:15px;
+  outline:none;
+  transition: border 160ms, box-shadow 160ms, background 160ms, transform 160ms;
+  border:1px solid var(--input-border);
+  background:#fff;
+  color:#111;
+}
+
+/* FOCUS */
+.input-field:focus{
+  border-color:var(--focus-border);
+  box-shadow:0 0 0 2px steelblue;
+  transform:translateY(-1px);
+}
+
+/* FLOAT LABEL */
+.float-label{
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:0.95rem;
+  color:var(--muted);
+  pointer-events:none;
+  transition:0.22s cubic-bezier(.2,.9,.3,1);
+  background:transparent;
+  padding:0 4px;
+  z-index:1;
+}
+
+/* LIFTED LABEL */
+.input-field:focus + .float-label,
+.input-field:not(:placeholder-shown) + .float-label{
+  top:-10px;
+  font-size:0.72rem;
+  color:#111;
+  transform:translateY(0);
+  background:var(--card-bg);
+  padding:0 8px;
+  border-radius:4px;
+  z-index:2;
+  box-shadow:0 1px 0 rgba(0,0,0,0.02) inset;
+}
+.error-text {
+  margin-top: 14px;
+  color: #d32f2f;
+  font-size: 14px;
+  text-align: center;
+  letter-spacing: 0.2px;
+}
+
+/* EYE ICON */
+.pw-toggle{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  background:transparent;
+  border:none;
+  padding:6px;
+  cursor:pointer;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:8px;
+  transition:color 140ms, transform 120ms;
+}
+.pw-toggle svg{ pointer-events:none; }
+
+.pw-toggle:hover,
+.input-field:focus ~ .pw-toggle{
+  color:#0b7f7d;
+  transform:translateY(-50%) scale(1.02);
+}
+
+/* SUBMIT BUTTON */
+.submit{
+  width:100%;
+  margin-top:6px;
+  padding:12px 14px;
+  border-radius:10px;
+  border:none;
+  cursor:pointer;
+  font-weight:700;
+  background:linear-gradient(90deg,var(--accent-start), var(--accent-end));
+  color:#042027;
+  box-shadow:0 8px 22px rgba(14,165,163,0.12);
+  transition:transform 160ms, box-shadow 160ms;
+}
+.submit:active{
+  transform:translateY(1px);
+  box-shadow:0 6px 18px rgba(14,165,163,0.10);
+}
+
+/* HELP ROW */
+.help-row{
+  display:flex;
+  justify-content:space-between;
+  margin-top:12px;
+  font-size:13px;
+  color:var(--muted);
+}
+.link-muted{ color:var(--muted); text-decoration:none; }
+.link-muted:hover{ color:#0ea5a3 }
+
+/* 🔥 ERROR STATE (username/password wrong) */
+.input-error .input-field{
+  border-color: var(--error-red) !important;
+  box-shadow: 0 0 0 2px rgba(214,40,40,0.25) !important;
+}
+.input-error .float-label{
+  color: var(--error-red) !important;
+}
+
+
+@media (max-width:900px){
+  
+  .page{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  
+  .left-panel{
+    display:flex;              
+    width:100%;
+    min-width:0;
+    padding:28px 20px;
+    justify-content:center;
+    align-items:flex-start;  
+  }
+
+ 
+  .left-inner{
+    text-align:center;
+    width:100%;
+    max-width:100%;
+  }
+  .product-title{ font-size:28px; letter-spacing:1px; margin-top:6px; }
+  .subtitle{ font-size:14px; margin-bottom:12px; }
+  .device-img{ max-width:280px; margin-top:12px; }
+
+  
+  .logo{
+    position:relative;
+    top:auto;
+    left:auto;
+    margin:12px 0 0 16px;
+    align-self:flex-start;
+    letter-spacing:3px;
+  }
+
+  .right-panel{
+    flex: none;
+    width:100%;
+    padding:28px 18px 40px 18px;
+    background:#ffffff;
+    align-items:center;
+    justify-content:flex-start; 
+  }
+
+  
+  .login-form{
+    width:96%;
+    max-width:620px;
+    margin-top:14px;
+    padding:20px;
+  }
+
+  
+  .input-field{
+    padding:12px 44px 12px 12px;
+    font-size:15px;
+  }
+
+  .float-label{ left:12px; }
+  .pw-toggle{ right:8px; }
+
+  
+  .help-row{ font-size:13px; }
+  .logo{ left:18px; }
+
+  
+  .input-error .input-field{ box-shadow: 0 0 0 2px rgba(214,40,40,0.18) !important; }
+
+  
+  @media (max-width:420px){
+    .product-title{ font-size:22px; }
+    .left-panel{ padding:20px 14px; }
+    .right-panel{ padding:20px 14px; }
+    .login-form{ padding:18px; }
+  }
+}
+
