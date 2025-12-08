@@ -865,17 +865,17 @@
     "ethernetPortStatus": {
       "LAN1": "100 Mbps",
       "LAN2": "100 Mbps",
-      "LAN3": "0 Mbps",
-      "LAN4": "0 Mbps",
-      "WAN1": "0 Mbps",
-      "WAN2": "0 Mbps",
+      "LAN3": "10 Mbps",
+      "LAN4": "5 Mbps",
+      "WAN1": "15 Mbps",
+      "WAN2": "10 Mbps",
       "ports": [
-        { "port": "WAN1", "status": "0 Mbps", "tx": 0, "rx": 0 },
-        { "port": "WAN2", "status": "0 Mbps", "tx": 0, "rx": 0 },
+        { "port": "WAN1", "status": "10 Mbps", "tx": 0, "rx": 0 },
+        { "port": "WAN2", "status": "15 Mbps", "tx": 0, "rx": 0 },
         { "port": "LAN1", "status": "100 Mbps", "tx": 11882, "rx": 2108 },
-        { "port": "LAN2", "status": "0 Mbps", "tx": 0, "rx": 0 },
-        { "port": "LAN3", "status": "0 Mbps", "tx": 0, "rx": 0 },
-        { "port": "LAN4", "status": "0 Mbps", "tx": 0, "rx": 0 }
+        { "port": "LAN2", "status": "10 Mbps", "tx": 0, "rx": 0 },
+        { "port": "LAN3", "status": "100 Mbps", "tx": 0, "rx": 0 },
+        { "port": "LAN4", "status": "50 Mbps", "tx": 0, "rx": 0 }
       ]
     },
     "vpnStatus": {

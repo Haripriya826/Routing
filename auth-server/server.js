@@ -16,6 +16,16 @@ const USERS_FILE = path.join(__dirname, "users.json");
 const EFILE = path.join(__dirname, "efile.json");
 const ROUTERS_FILE = path.join(__dirname, "routers.json");
 
+// --- devices file constant + helpers ---
+const DEVICES_FILE = path.join(__dirname, "devices.json");
+function loadDevices() { return readJSON(DEVICES_FILE, []); }
+function saveDevices(arr) { writeJSON(DEVICES_FILE, arr); }
+// Ensure devices.json exists (creates empty array if missing)
+if (!fs.existsSync(DEVICES_FILE)) {
+  writeJSON(DEVICES_FILE, []);
+  console.warn("devices.json missing — created empty auth-server/devices.json. Replace with your mock file if needed.");
+}
+
 // Simple file helpers
 function readJSON(filePath, fallback = []) {
   try {
@@ -141,7 +151,7 @@ function normalizeRouter(raw) {
   return r;
 }
 
-// If no users exist, create default admin
+// If no users exist, create default admin (with settings)
 (async () => {
   try {
     const users = loadUsers();
@@ -153,7 +163,10 @@ function normalizeRouter(raw) {
       const newUser = {
         id: Date.now().toString(),
         username: defaultUsername,
-        passwordHash
+        passwordHash,
+        settings: {
+          theme: "system" // default theme
+        }
       };
 
       users.push(newUser);
@@ -195,7 +208,12 @@ app.post("/api/register", async (req, res) => {
 
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    const newUser = { id: Date.now().toString(), username, passwordHash };
+    const newUser = {
+      id: Date.now().toString(),
+      username,
+      passwordHash,
+      settings: { theme: "system" } // default settings for new users
+    };
     users.push(newUser);
     saveUsers(users);
     return res.status(201).json({ status: true, message: "user created", id: newUser.id, username: newUser.username });
@@ -276,7 +294,15 @@ function requireAuth(req, res, next) {
   const token = auth.split(" ")[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    // find the full user object from users.json by id (sub) or username
+    const users = loadUsers();
+    const user = users.find(u => String(u.id) === String(decoded.sub) || u.username === decoded.username);
+    if (!user) {
+      return res.status(401).json({ status: false, message: "User not found" });
+    }
+
+    // Attach full user object so handlers can read and update settings
+    req.user = user;
     req.token = token;
     next();
   } catch (err) {
@@ -284,9 +310,48 @@ function requireAuth(req, res, next) {
   }
 }
 
+// ----------------- User settings endpoints -----------------
+// GET /api/user/settings  -> returns { status: true, settings: { theme } }
+app.get("/api/user/settings", requireAuth, (req, res) => {
+  try {
+    // req.user is the full user object from users.json (see requireAuth)
+    const settings = req.user.settings || { theme: "system" };
+    return res.json({ status: true, settings });
+  } catch (err) {
+    console.error("/api/user/settings GET error:", err);
+    return res.status(500).json({ status: false, message: "internal error" });
+  }
+});
+
+// POST /api/user/settings  -> body { theme: "dark" }  (updates user.settings.theme)
+app.post("/api/user/settings", requireAuth, (req, res) => {
+  try {
+    const { theme } = req.body || {};
+    const allowed = ["system", "dark", "light"];
+    if (theme !== undefined && !allowed.includes(theme)) {
+      return res.status(400).json({ status: false, message: "Invalid theme" });
+    }
+
+    // Load users, find by id, update settings, persist
+    const users = loadUsers();
+    const idx = users.findIndex(u => String(u.id) === String(req.user.id) || u.username === req.user.username);
+    if (idx === -1) return res.status(404).json({ status: false, message: "User not found" });
+
+    users[idx].settings = users[idx].settings || {};
+    if (theme !== undefined) users[idx].settings.theme = theme;
+
+    saveUsers(users);
+
+    return res.json({ status: true, settings: users[idx].settings });
+  } catch (err) {
+    console.error("/api/user/settings POST error:", err);
+    return res.status(500).json({ status: false, message: "internal error" });
+  }
+});
+
 // ----------------- Protected test route -----------------
 app.get("/api/protected", requireAuth, (req, res) => {
-  res.json({ status: true, message: "Protected content", user: req.user });
+  res.json({ status: true, message: "Protected content", user: { id: req.user.id, username: req.user.username } });
 });
 
 // ----------------- Router endpoints -----------------
@@ -295,7 +360,7 @@ app.get("/api/protected", requireAuth, (req, res) => {
 app.get("/api/me", requireAuth, (req, res) => {
   try {
     const users = loadUsers();
-    const user = users.find(u => u.id === req.user.sub || u.username === req.user.username);
+    const user = users.find(u => String(u.id) === String(req.user.id) || u.username === req.user.username);
     if (!user) return res.status(404).json({ status: false, message: "User not found" });
 
     let router = null;
@@ -312,7 +377,11 @@ app.get("/api/me", requireAuth, (req, res) => {
       console.error("Error loading routers.json:", err);
     }
 
-    const safeUser = { id: user.id, username: user.username };
+    const safeUser = {
+      id: user.id,
+      username: user.username,
+      settings: user.settings || { theme: "system" }
+    };
     return res.json({ status: true, user: safeUser, router });
   } catch (err) {
     console.error("/api/me error:", err);
@@ -354,6 +423,43 @@ app.get("/api/router/by-username/:username", requireAuth, (req, res) => {
     return res.json({ status: true, router: found ? normalizeRouter(found) : null });
   } catch (err) {
     console.error("/api/router/by-username error:", err);
+    return res.status(500).json({ status: false, message: "internal error" });
+  }
+});
+
+// ----------------- Devices endpoints -----------------
+
+// Public devices list (no auth required)
+app.get("/api/devices", (req, res) => {
+  try {
+    const devices = loadDevices();
+    return res.json({ status: true, devices });
+  } catch (err) {
+    console.error("/api/devices error:", err);
+    return res.status(500).json({ status: false, message: "internal error" });
+  }
+});
+
+// Protected devices list (requires valid JWT)
+app.get("/api/devices/protected", requireAuth, (req, res) => {
+  try {
+    const devices = loadDevices();
+    return res.json({ status: true, devices });
+  } catch (err) {
+    console.error("/api/devices/protected error:", err);
+    return res.status(500).json({ status: false, message: "internal error" });
+  }
+});
+
+// Protected update (replace whole devices array) — useful for dev + mocks
+app.post("/api/devices", requireAuth, (req, res) => {
+  try {
+    const newDevices = Array.isArray(req.body) ? req.body : (req.body?.devices ?? null);
+    if (!Array.isArray(newDevices)) return res.status(400).json({ status: false, message: "Expected array body" });
+    saveDevices(newDevices);
+    return res.json({ status: true, devices: newDevices });
+  } catch (err) {
+    console.error("/api/devices POST error:", err);
     return res.status(500).json({ status: false, message: "internal error" });
   }
 });

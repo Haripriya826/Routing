@@ -1,0 +1,226 @@
+:root {
+  --bg: #fff;
+  --surface: #fff;
+  --text: #172031;
+  --muted-text: #6b7280;
+  --accent: #2b7bd3;
+  --border: #e6e9ef;
+  --table-head: #fafbfc;
+  --shadow: rgba(20,30,40,0.04);
+}
+
+/* Dark theme variables:
+   - works when you add either:
+   - html.theme-dark (from Dashboard.js)
+   - or html.attached-dark / .attached-root.dark if you use those
+*/
+.attached-root.dark,
+html.attached-dark .attached-root,
+html.theme-dark .attached-root {
+  --bg: #071427;
+  --surface: #0b1220;
+  --text: #e6eef8;
+  --muted-text: #9aa9bf;
+  --accent: #3b82f6;
+  --border: #1f2a37;
+  --table-head: #071127;
+  --shadow: rgba(0,0,0,0.6);
+}
+
+.attached-root {
+  padding: 10px;
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 5px;
+  box-shadow: 0 2px 6px var(--shadow);
+
+  width: 100%;
+  max-width: 100%;
+
+  height: auto;
+  overflow: visible;
+}
+
+/* header */
+.attached-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap; /* responsive */
+}
+
+.attached-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.attached-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap; /* responsive */
+}
+
+.total {
+  color: var(--muted-text);
+  font-size: 14px;
+}
+
+.search {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  min-width: 180px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.btn {
+  padding: 8px 12px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn.go {
+  background: #1e63b0;
+}
+
+/* table */
+.table-wrap {
+  margin-top: 12px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 4px;
+
+  width: 100%;      /* full width */
+  height: auto;
+  overflow: visible; /* no internal scroll */
+  width: 1100px;
+}
+
+.device-table {
+  width: 100%;      /* fill available width */
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.device-table th,
+.device-table td {
+  padding: 8px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  color: var(--text);
+}
+
+.device-table thead th {
+  background: var(--table-head);
+  font-weight: 600;
+  color: var(--muted-text);
+  position: sticky;
+  top: 0;
+}
+
+.empty {
+  padding: 6px;
+  text-align: center;
+  color: var(--muted-text);
+}
+
+/* pagination */
+.pagination {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.pagination button {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  background: var(--accent);
+  color: white;
+}
+
+.page-info {
+  color: var(--muted-text);
+}
+
+/* responsive: medium screens */
+@media (max-width: 900px) {
+  .attached-root {
+    padding: 8px;
+  }
+
+  .search {
+    min-width: 140px;
+  }
+}
+
+/* responsive: small screens */
+@media (max-width: 640px) {
+  .attached-root {
+    padding: 6px;
+    border-radius: 0; /* optional: edge-to-edge look on mobile */
+    box-shadow: none;
+  }
+
+  .attached-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .attached-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .search {
+    min-width: 120px;
+    padding: 6px 8px;
+    flex: 1;
+  }
+
+  /* Stack table rows like cards */
+  .device-table,
+  .device-table thead,
+  .device-table tbody,
+  .device-table th,
+  .device-table td,
+  .device-table tr {
+    display: block;
+    width: 100%;
+  }
+
+  .device-table thead {
+    display: none;
+  }
+
+  .device-table tbody tr {
+    margin: 10px 0;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+  }
+
+  .device-table td {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.04);
+  }
+}
