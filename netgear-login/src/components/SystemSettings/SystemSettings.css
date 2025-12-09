@@ -20,8 +20,12 @@
   --right-col-width: 320px;
 }
 
-/* dark theme overrides */
-.theme-dark, :root[data-theme="dark"] {
+/* dark theme overrides
+   include body.theme-dark and :root.theme-dark as well for broader coverage */
+body.theme-dark,
+.theme-dark,
+:root.theme-dark,
+:root[data-theme="dark"] {
   --bg: #0f1724;
   --card-bg: #0b1220;
   --muted: #9aa6b2;

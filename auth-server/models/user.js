@@ -12,7 +12,7 @@ const SettingsSchema = new mongoose.Schema({
 const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   passwordHash: { type: String, required: true },
-  // ... your other fields ...
+  
   settings: { type: SettingsSchema, default: () => ({}) },
 }, { timestamps: true });
 

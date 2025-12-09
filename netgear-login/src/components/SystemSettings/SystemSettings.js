@@ -1,7 +1,7 @@
 // src/SystemSettings.js
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Dashboard.css"; // re-use Dashboard.css so styles append in same file
+import "../Dashboard/Dashboard.css"; // re-use Dashboard.css so styles append in same file
 
 export default function SystemSettings() {
   const navigate = useNavigate();
@@ -12,37 +12,67 @@ export default function SystemSettings() {
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
-  const getToken = () => localStorage.getItem("authToken") || localStorage.getItem("token") || null;
+  const getToken = () =>
+    localStorage.getItem("authToken") || localStorage.getItem("token") || null;
 
-  // Apply a theme immediately to the document element and localStorage
-  const applyThemeToDocument = (t) => {
+  // Apply a theme scoped to the dashboard root (.dash-root) and persist setting
+  const applyThemeScopedToDashRoot = (t) => {
     try {
-      const root = document.documentElement;
+      const dashRoot = document.querySelector(".dash-root");
+
+      // persist setting for server/restore
       if (t === "dark") {
-        root.setAttribute("data-theme", "dark");
-        root.classList.add("theme-dark");
         localStorage.setItem("themeSetting", "dark");
         localStorage.setItem("theme", "dark");
       } else if (t === "light") {
-        root.setAttribute("data-theme", "light");
-        root.classList.remove("theme-dark");
         localStorage.setItem("themeSetting", "light");
         localStorage.setItem("theme", "light");
       } else {
-        // system
-        root.removeAttribute("data-theme");
-        // set class based on system preference
-        const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-        root.classList.toggle("theme-dark", prefersDark);
         localStorage.setItem("themeSetting", "system");
-        // maintain legacy key but keep it as light/dark for older reads
+        const prefersDark =
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
         localStorage.setItem("theme", prefersDark ? "dark" : "light");
       }
+
+      if (!dashRoot) {
+        // Nothing to style on this page (e.g., login) — keep it untouched.
+        return;
+      }
+
+      // Clear existing classes
+      dashRoot.classList.remove("theme-dark", "theme-light", "theme-system");
+
+      if (t === "dark") {
+        dashRoot.classList.add("theme-dark");
+      } else if (t === "light") {
+        dashRoot.classList.add("theme-light");
+      } else {
+        // system: preview based on prefers-color-scheme
+        const prefersDark =
+          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (prefersDark) dashRoot.classList.add("theme-dark");
+        else dashRoot.classList.add("theme-light");
+      }
     } catch (e) {
-      // ignore DOM/storage failures on some environments
-      console.warn("applyThemeToDocument failed:", e);
+      console.warn("applyThemeScopedToDashRoot failed:", e);
     }
   };
+
+  // read persisted choice (for quick preview)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("themeSetting") || localStorage.getItem("theme");
+      if (stored === "dark" || stored === "light" || stored === "system") {
+        setTheme(stored === "dark" || stored === "light" ? stored : "system");
+        applyThemeScopedToDashRoot(stored === "dark" || stored === "light" ? stored : "system");
+      } else {
+        // default: system
+        applyThemeScopedToDashRoot("system");
+      }
+    } catch (e) {
+      // ignore localStorage read errors
+    }
+  }, []);
 
   // load server settings on mount
   useEffect(() => {
@@ -64,7 +94,11 @@ export default function SystemSettings() {
 
         if (res.status === 401) {
           setErr("Session expired — redirecting to login...");
-          try { localStorage.removeItem("authToken"); localStorage.removeItem("token"); localStorage.removeItem("username"); } catch {}
+          try {
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("token");
+            localStorage.removeItem("username");
+          } catch {}
           setTimeout(() => navigate("/"), 800);
           return;
         }
@@ -81,8 +115,8 @@ export default function SystemSettings() {
           const serverTheme = s.theme ?? "system";
           setTheme(serverTheme);
 
-          // Apply the theme immediately so the page reflects it on load
-          applyThemeToDocument(serverTheme);
+          // Apply theme scoped to .dash-root so dashboard reflects it on load
+          applyThemeScopedToDashRoot(serverTheme);
         }
       } catch (e) {
         console.error("load settings error", e);
@@ -92,7 +126,9 @@ export default function SystemSettings() {
       }
     }
     load();
-    return () => { aborted = true; };
+    return () => {
+      aborted = true;
+    };
   }, [navigate]);
 
   // Change handler for radio buttons: applies immediately (preview) but not persisted until Save
@@ -100,8 +136,7 @@ export default function SystemSettings() {
     setTheme(t);
     setMsg(null);
     setErr(null);
-    // apply preview immediately to whole app
-    applyThemeToDocument(t);
+    applyThemeScopedToDashRoot(t);
   };
 
   const onSave = async () => {
@@ -130,8 +165,8 @@ export default function SystemSettings() {
       const body = await res.json();
       const updated = body?.settings || { theme };
 
-      // persist locally and apply globally
-      applyThemeToDocument(updated.theme ?? "system");
+      // persist locally and apply globally scoped to dashboard
+      applyThemeScopedToDashRoot(updated.theme ?? "system");
 
       setServerSettings(updated);
       setMsg("Saved successfully");
@@ -140,13 +175,16 @@ export default function SystemSettings() {
       setErr(e.message || "Failed to save");
     } finally {
       setSaving(false);
-      setTimeout(() => { setMsg(null); setErr(null); }, 2500);
+      setTimeout(() => {
+        setMsg(null);
+        setErr(null);
+      }, 2500);
     }
   };
 
   const onReset = () => {
     setTheme(serverSettings.theme ?? "system");
-    applyThemeToDocument(serverSettings.theme ?? "system");
+    applyThemeScopedToDashRoot(serverSettings.theme ?? "system");
     setMsg("Reverted to server value");
     setTimeout(() => setMsg(null), 1500);
   };
@@ -216,7 +254,10 @@ export default function SystemSettings() {
               <button
                 className="btn link"
                 onClick={() => {
-                  try { localStorage.removeItem("authToken"); localStorage.removeItem("token"); } catch {}
+                  try {
+                    localStorage.removeItem("authToken");
+                    localStorage.removeItem("token");
+                  } catch {}
                   navigate("/dashboard");
                 }}
               >

@@ -881,3 +881,58 @@ html, body, #root {
 .theme-dark .logout-btn:hover {
   background: #ff1f1f;
 }
+/* ===== CONNECTIVITY FULL-SIZE LAYOUT ===== */
+.connectivity-images-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 250px;
+  height: 400px;               /* FULL HEIGHT — IMPORTANT */
+  padding: 20px 0;            /* Add breathing space */
+}
+
+.connectivity-images-root .ci-row {
+  display: flex;
+  gap: 10px;                  /* Larger spacing for big layout */
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.connectivity-images-root .ci-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connectivity-images-root .ci-wan {
+  width: 200px;               /* BIGGER SIZE */
+  height: 580px;
+  flex-shrink: 0;
+}
+
+.connectivity-images-root img {
+  display: block;
+  width: 100%;                /* Scale correctly */
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Router box */
+
+
+/* Responsive for mobiles */
+@media (max-width: 640px) {
+  .connectivity-images-root .ci-row {
+    gap: 16px;
+  }
+  .connectivity-images-root .ci-wan {
+    width: 64px;
+    height: 64px;
+  }
+  .ci-router-box {
+    width: 100px;
+    height: 48px;
+    font-size: 16px;
+  }
+}

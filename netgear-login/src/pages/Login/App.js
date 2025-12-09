@@ -1,7 +1,7 @@
 // src/App.js
 import React, { useState, useRef, useEffect } from "react";
 import "./App.css";
-import leftImage1 from "./assets/leftImage1.png";
+import leftImage1 from "../../assets/leftImage1.png";
 import { useNavigate } from "react-router-dom";
 
 export default function App() {

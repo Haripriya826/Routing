@@ -2,8 +2,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
-import AttachedDevices from "./components/AttachedDevices/AttachedDevices"; // uses your existing AttachedDevices component
-import SystemSettings from "./components/SystemSettings/SystemSettings";   // new import for settings page
+import AttachedDevices from "../AttachedDevices/AttachedDevices";
+import SystemSettings from "../SystemSettings/SystemSettings";
+
+// Helper to safely parse WAN values like "50%", "0 Mbps", "0", numeric, or null
+function parseWAN(val) {
+  if (val === undefined || val === null) return 0;
+  if (typeof val === "number") return val;
+  // strip non-numeric (except dot and minus) and parse
+  const f = parseFloat(String(val).replace(/[^0-9.\-]+/g, ""));
+  return Number.isFinite(f) ? f : 0;
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -649,6 +658,9 @@ export default function Dashboard() {
   }
 
   // Default dashboard layout (when not in monitoring or settings)
+  const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
+  const wan2Up = parseWAN(routerData?.connectivity?.WAN2Load) > 0;
+
   return (
     <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
       <header className="dash-header">
@@ -739,10 +751,35 @@ export default function Dashboard() {
               ) : fetchError ? (
                 <div style={{ color: "crimson" }}>{fetchError}</div>
               ) : (
-                <div style={{ width: "100%", display: "grid", gap: 8 }}>
-                  <KVRow label="Attached devices" value={val(routerData?.connectivity?.attachedDevices)} />
-                  <KVRow label="WAN1 load" value={val(routerData?.connectivity?.WAN1Load)} />
-                  <KVRow label="WAN2 load" value={val(routerData?.connectivity?.WAN2Load)} />
+                /* ---- CONNECTIVITY IMAGES (robust PUBLIC_URL method) ---- */
+                <div className="connectivity-images-root">
+                  <div className="ci-row">
+
+                    {/* WAN1 IMAGE: show routerOn / routerOff from public/assets */}
+                    <img
+                      src={
+                        (process.env.PUBLIC_URL || "") +
+                        (wan1Up ? "/assets/routerOn.jpg" : "/assets/routerOff.jpg")
+                      }
+                      alt="WAN1"
+                      className="ci-wan"
+                      onError={(e) => {
+                        console.warn("WAN1 image failed to load:", e.currentTarget.src);
+                        e.currentTarget.style.display = "none";
+                        const ph = document.createElement("div");
+                        ph.textContent = "WAN1";
+                        ph.style.width = (e.currentTarget.width ? e.currentTarget.width + "px" : "64px");
+                        ph.style.height = (e.currentTarget.height ? e.currentTarget.height + "px" : "64px");
+                        ph.style.display = "inline-flex";
+                        ph.style.alignItems = "center";
+                        ph.style.justifyContent = "center";
+                        ph.style.background = "rgba(0,0,0,0.04)";
+                        ph.style.borderRadius = "8px";
+                        e.currentTarget.parentNode.insertBefore(ph, e.currentTarget);
+                      }}
+                    />
+
+                  </div>
                 </div>
               )}
             </div>
