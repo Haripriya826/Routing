@@ -1,7 +1,7 @@
 // src/SystemSettings.js
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../Dashboard/Dashboard.css"; // re-use Dashboard.css so styles append in same file
+import "../Dashboard/Dashboard.css"; // re-use Dashboard.css
 
 export default function SystemSettings() {
   const navigate = useNavigate();
@@ -12,71 +12,66 @@ export default function SystemSettings() {
   const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
-  const getToken = () =>
-    localStorage.getItem("authToken") || localStorage.getItem("token") || null;
+  // stable refs for timers so we can clear them on unmount
+  const redirectTimerRef = useRef(null);
+  const clearMsgTimerRef = useRef(null);
 
-  // Apply a theme scoped to the dashboard root (.dash-root) and persist setting
-  const applyThemeScopedToDashRoot = (t) => {
+  // stable helper to fetch token
+  const getToken = useCallback(() => {
+    return (
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token") ||
+      null
+    );
+  }, []);
+
+  // Apply a theme immediately to the document element, BODY, and localStorage
+  const applyThemeToDocument = useCallback((t) => {
     try {
-      const dashRoot = document.querySelector(".dash-root");
+      const root = document.documentElement;
+      const body = document.body;
 
-      // persist setting for server/restore
       if (t === "dark") {
+        root.setAttribute("data-theme", "dark");
+        root.classList.add("theme-dark");
+        body && body.classList.add("theme-dark");
+
         localStorage.setItem("themeSetting", "dark");
         localStorage.setItem("theme", "dark");
       } else if (t === "light") {
+        root.setAttribute("data-theme", "light");
+        root.classList.remove("theme-dark");
+        body && body.classList.remove("theme-dark");
+
         localStorage.setItem("themeSetting", "light");
         localStorage.setItem("theme", "light");
       } else {
-        localStorage.setItem("themeSetting", "system");
+        // system
+        root.removeAttribute("data-theme");
+
         const prefersDark =
-          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+          typeof window !== "undefined" &&
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        root.classList.toggle("theme-dark", prefersDark);
+        body && body.classList.toggle("theme-dark", prefersDark);
+
+        localStorage.setItem("themeSetting", "system");
+        // legacy key as actual theme
         localStorage.setItem("theme", prefersDark ? "dark" : "light");
       }
-
-      if (!dashRoot) {
-        // Nothing to style on this page (e.g., login) — keep it untouched.
-        return;
-      }
-
-      // Clear existing classes
-      dashRoot.classList.remove("theme-dark", "theme-light", "theme-system");
-
-      if (t === "dark") {
-        dashRoot.classList.add("theme-dark");
-      } else if (t === "light") {
-        dashRoot.classList.add("theme-light");
-      } else {
-        // system: preview based on prefers-color-scheme
-        const prefersDark =
-          window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-        if (prefersDark) dashRoot.classList.add("theme-dark");
-        else dashRoot.classList.add("theme-light");
-      }
     } catch (e) {
-      console.warn("applyThemeScopedToDashRoot failed:", e);
-    }
-  };
-
-  // read persisted choice (for quick preview)
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem("themeSetting") || localStorage.getItem("theme");
-      if (stored === "dark" || stored === "light" || stored === "system") {
-        setTheme(stored === "dark" || stored === "light" ? stored : "system");
-        applyThemeScopedToDashRoot(stored === "dark" || stored === "light" ? stored : "system");
-      } else {
-        // default: system
-        applyThemeScopedToDashRoot("system");
-      }
-    } catch (e) {
-      // ignore localStorage read errors
+      // Warn but don't throw so UI still works
+      // eslint-disable-next-line no-console
+      console.warn("applyThemeToDocument failed:", e);
     }
   }, []);
 
-  // load server settings on mount
+  // Load server settings on mount
   useEffect(() => {
     let aborted = false;
+
     async function load() {
       setLoading(true);
       setErr(null);
@@ -84,12 +79,16 @@ export default function SystemSettings() {
         const token = getToken();
         if (!token) {
           setErr("Not authenticated — please login.");
-          setTimeout(() => navigate("/"), 800);
+          // redirect after a short delay
+          redirectTimerRef.current = window.setTimeout(() => navigate("/"), 800);
           return;
         }
 
         const res = await fetch("http://localhost:5000/api/user/settings", {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         });
 
         if (res.status === 401) {
@@ -99,7 +98,7 @@ export default function SystemSettings() {
             localStorage.removeItem("token");
             localStorage.removeItem("username");
           } catch {}
-          setTimeout(() => navigate("/"), 800);
+          redirectTimerRef.current = window.setTimeout(() => navigate("/"), 800);
           return;
         }
 
@@ -115,42 +114,61 @@ export default function SystemSettings() {
           const serverTheme = s.theme ?? "system";
           setTheme(serverTheme);
 
-          // Apply theme scoped to .dash-root so dashboard reflects it on load
-          applyThemeScopedToDashRoot(serverTheme);
+          // Apply the theme immediately so the whole app reflects it
+          applyThemeToDocument(serverTheme);
         }
       } catch (e) {
+        // eslint-disable-next-line no-console
         console.error("load settings error", e);
         if (!aborted) setErr(e.message || "Failed to load settings");
       } finally {
         if (!aborted) setLoading(false);
       }
     }
+
     load();
+
     return () => {
       aborted = true;
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
     };
-  }, [navigate]);
+    // getToken and applyThemeToDocument are stable via useCallback
+    // include navigate because it's stable provided by react-router
+  }, [navigate, getToken, applyThemeToDocument]);
 
-  // Change handler for radio buttons: applies immediately (preview) but not persisted until Save
+  // Change handler for radio buttons: applies immediately (preview)
   const onSelectTheme = (t) => {
     setTheme(t);
     setMsg(null);
     setErr(null);
-    applyThemeScopedToDashRoot(t);
+    applyThemeToDocument(t);
   };
 
   const onSave = async () => {
     setSaving(true);
     setMsg(null);
     setErr(null);
+
+    // clear any previous clearMsg timer
+    if (clearMsgTimerRef.current) {
+      clearTimeout(clearMsgTimerRef.current);
+      clearMsgTimerRef.current = null;
+    }
+
     try {
       const token = getToken();
       if (!token) throw new Error("No auth token, please login");
 
       const res = await fetch("http://localhost:5000/api/user/settings", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ theme })
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ theme }),
       });
 
       if (res.status === 401) {
@@ -165,29 +183,55 @@ export default function SystemSettings() {
       const body = await res.json();
       const updated = body?.settings || { theme };
 
-      // persist locally and apply globally scoped to dashboard
-      applyThemeScopedToDashRoot(updated.theme ?? "system");
-
+      // persist locally and apply globally
+      applyThemeToDocument(updated.theme ?? "system");
       setServerSettings(updated);
       setMsg("Saved successfully");
     } catch (e) {
+      // eslint-disable-next-line no-console
       console.error("save settings error", e);
       setErr(e.message || "Failed to save");
     } finally {
       setSaving(false);
-      setTimeout(() => {
+
+      // clear message after a while
+      clearMsgTimerRef.current = window.setTimeout(() => {
         setMsg(null);
         setErr(null);
+        clearMsgTimerRef.current = null;
       }, 2500);
     }
   };
 
   const onReset = () => {
-    setTheme(serverSettings.theme ?? "system");
-    applyThemeScopedToDashRoot(serverSettings.theme ?? "system");
+    const base = serverSettings.theme ?? "system";
+    setTheme(base);
+    applyThemeToDocument(base);
     setMsg("Reverted to server value");
-    setTimeout(() => setMsg(null), 1500);
+
+    if (clearMsgTimerRef.current) {
+      clearTimeout(clearMsgTimerRef.current);
+      clearMsgTimerRef.current = null;
+    }
+    clearMsgTimerRef.current = window.setTimeout(() => {
+      setMsg(null);
+      clearMsgTimerRef.current = null;
+    }, 1500);
   };
+
+  // clear any timers on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+      if (clearMsgTimerRef.current) {
+        clearTimeout(clearMsgTimerRef.current);
+        clearMsgTimerRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className="sys-settings-root">
@@ -197,10 +241,14 @@ export default function SystemSettings() {
         {loading ? (
           <div>Loading settings…</div>
         ) : err ? (
-          <div className="sys-error">{err}</div>
+          <div className="sys-error" role="alert">{err}</div>
         ) : (
           <>
-            <div className="radio-group" role="radiogroup" aria-label="Theme">
+            <div
+              className="radio-group"
+              role="radiogroup"
+              aria-label="Theme"
+            >
               <label className="radio-row">
                 <input
                   type="radio"
@@ -248,25 +296,17 @@ export default function SystemSettings() {
               <button className="btn" onClick={onSave} disabled={saving}>
                 {saving ? "Saving…" : "Save"}
               </button>
-              <button className="btn muted" onClick={onReset} disabled={saving}>
-                Reset
-              </button>
               <button
-                className="btn link"
-                onClick={() => {
-                  try {
-                    localStorage.removeItem("authToken");
-                    localStorage.removeItem("token");
-                  } catch {}
-                  navigate("/dashboard");
-                }}
+                className="btn muted"
+                onClick={onReset}
+                disabled={saving}
               >
-                Back to Dashboard
+                Reset
               </button>
             </div>
 
-            {msg && <div className="sys-msg success">{msg}</div>}
-            {!msg && err && <div className="sys-msg error">{err}</div>}
+            {msg && <div className="sys-msg success" role="status">{msg}</div>}
+            {!msg && err && <div className="sys-msg error" role="alert">{err}</div>}
           </>
         )}
       </div>

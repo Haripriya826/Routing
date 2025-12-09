@@ -305,11 +305,10 @@ html, body, #root {
 /* CONNECTIVITY & INTERNET rows */
 .col-connectivity { display:flex; flex-direction:column; gap:12px; }
 .col-connectivity .card-body > div,
-/* Push Internet Port Status value fully to the right */
 .internet-port-card .card-body > div > div:last-child {
   flex: 1;
   text-align: right;
-  padding-right: 4px; /* adjust if you want even more right */
+  padding-right: 4px;
 }
 
 .col-connectivity .card-body div > div:first-child,
@@ -552,7 +551,7 @@ html, body, #root {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: var(--bg); /* was transparent; now uses theme bg */
+  background: var(--bg);
 }
 
 /* Attached devices root (keeps same theme variables) */
@@ -644,7 +643,7 @@ html, body, #root {
 /* Table wrapper */
 .table-wrap {
   width: 100%;
-  overflow: visible;      /* no inner scroll pane */
+  overflow: visible;
   border-radius: 8px;
   background: transparent;
 }
@@ -746,7 +745,7 @@ html, body, #root {
 
 /* make sure the monitoring area and attached-root scrolls nicely inside dash-grid */
 .monitoring-full, .attached-root {
-  min-height: 0; /* allow flex children to shrink inside grid */
+  min-height: 0;
 }
 
 /* Sidebar badge (attached devices count indicator) */
@@ -881,19 +880,20 @@ html, body, #root {
 .theme-dark .logout-btn:hover {
   background: #ff1f1f;
 }
+
 /* ===== CONNECTIVITY FULL-SIZE LAYOUT ===== */
 .connectivity-images-root {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 250px;
-  height: 400px;               /* FULL HEIGHT — IMPORTANT */
-  padding: 20px 0;            /* Add breathing space */
+  height: 400px;
+  padding: 20px 0;
 }
 
 .connectivity-images-root .ci-row {
   display: flex;
-  gap: 10px;                  /* Larger spacing for big layout */
+  gap: 10px;
   align-items: center;
   justify-content: center;
   width: 100%;
@@ -906,20 +906,17 @@ html, body, #root {
 }
 
 .connectivity-images-root .ci-wan {
-  width: 200px;               /* BIGGER SIZE */
+  width: 200px;
   height: 580px;
   flex-shrink: 0;
 }
 
 .connectivity-images-root img {
   display: block;
-  width: 100%;                /* Scale correctly */
+  width: 100%;
   height: 100%;
   object-fit: contain;
 }
-
-/* Router box */
-
 
 /* Responsive for mobiles */
 @media (max-width: 640px) {
@@ -935,4 +932,162 @@ html, body, #root {
     height: 48px;
     font-size: 16px;
   }
+}
+
+/* ==============================
+   Standalone System Settings page
+   ============================== */
+
+.sys-settings-root {
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.sys-settings-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  padding: 18px 20px;
+}
+
+.sys-settings-card h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* radio group inside standalone settings */
+.sys-settings-card .radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Save / Reset buttons row */
+.sys-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+/* Messages under buttons */
+.sys-msg {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sys-msg.success {
+  background: #e6ffef;
+  color: #065f46;
+}
+
+.sys-msg.error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.sys-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+/* Slightly strengthen Reset button look */
+.btn.muted {
+  background: #eef2f8;
+  color: #243449;
+  font-weight: 600;
+}
+
+/* ==============================
+   LOGIN PAGE ALWAYS LIGHT
+   ============================== */
+
+.login-root {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f4f7fb; /* force light background */
+  color: #172031;
+}
+
+.login-card {
+  width: 340px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+  border: 1px solid #e5e9ef;
+  text-align: center;
+}
+
+.login-card h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #172031;
+}
+
+.login-sub {
+  font-size: 13px;
+  color: #6b7682;
+  margin-bottom: 18px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.login-input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d3dae4;
+  background: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  color: #172031;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: #0064e0;
+  box-shadow: 0 0 0 1px rgba(0,100,224,0.18);
+}
+
+.login-error {
+  background: #ffecec;
+  color: #b91c1c;
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.login-btn {
+  background: var(--accent);
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 10px;
+  color: #fff;
+  margin-top: 6px;
+  transition: 0.25s;
+}
+
+.login-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
 }

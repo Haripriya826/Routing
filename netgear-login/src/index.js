@@ -9,6 +9,7 @@ import SystemSettings from "./components/SystemSettings/SystemSettings";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
+
 root.render(
   <BrowserRouter>
     <Routes>

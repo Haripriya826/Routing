@@ -9,8 +9,8 @@ import SystemSettings from "../SystemSettings/SystemSettings";
 function parseWAN(val) {
   if (val === undefined || val === null) return 0;
   if (typeof val === "number") return val;
-  // strip non-numeric (except dot and minus) and parse
-  const f = parseFloat(String(val).replace(/[^0-9.\-]+/g, ""));
+  // allow digits, dot and minus; avoid unnecessary escaping to satisfy eslint
+  const f = parseFloat(String(val).replace(/[^0-9.-]+/g, ""));
   return Number.isFinite(f) ? f : 0;
 }
 
@@ -21,21 +21,20 @@ export default function Dashboard() {
   // Sidebar selection: 'dashboard' | 'monitoring' | 'settings'
   const [sidebarSelection, setSidebarSelection] = useState("dashboard");
 
-  // Theme setting: 'default' | 'light' | 'dark'
+  // Theme setting: 'system' | 'light' | 'dark'
   const [themeSetting, setThemeSetting] = useState(() => {
     try {
       const ts = localStorage.getItem("themeSetting");
-      if (ts) return ts;
+      if (ts) return ts; // "system" | "light" | "dark"
       const old = localStorage.getItem("theme");
       if (old === "dark") return "dark";
       if (old === "light") return "light";
-      return "default";
+      return "system";
     } catch {
-      return "default";
+      return "system";
     }
   });
 
-  // compute effective dark mode
   const computeEffectiveDark = (setting) => {
     try {
       if (setting === "dark") return true;
@@ -49,26 +48,30 @@ export default function Dashboard() {
     }
   };
 
-  // boolean for UI convenience
   const [darkMode, setDarkMode] = useState(() => computeEffectiveDark(themeSetting));
 
-  // apply theme when themeSetting changes
   useEffect(() => {
     applyTheme(themeSetting);
     try {
       localStorage.setItem("themeSetting", themeSetting);
-      // keep legacy key too
-      localStorage.setItem("theme", themeSetting === "dark" ? "dark" : "light");
+      if (themeSetting === "dark") localStorage.setItem("theme", "dark");
+      else if (themeSetting === "light") localStorage.setItem("theme", "light");
+      else {
+        const prefersDark =
+          typeof window !== "undefined" &&
+          window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+        localStorage.setItem("theme", prefersDark ? "dark" : "light");
+      }
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeSetting]);
 
-  // listen to system changes when default
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = (e) => {
-      if (themeSetting === "default") {
+      if (themeSetting === "system") {
         const eff = e.matches;
         setDarkMode(eff);
         try {
@@ -77,7 +80,7 @@ export default function Dashboard() {
       }
     };
 
-    if (themeSetting === "default") {
+    if (themeSetting === "system") {
       const eff = mq.matches;
       setDarkMode(eff);
       try {
@@ -97,18 +100,22 @@ export default function Dashboard() {
   function applyTheme(setting) {
     try {
       const root = document.documentElement;
+      const body = document.body;
       if (setting === "dark") {
         root.setAttribute("data-theme", "dark");
         root.classList.add("theme-dark");
+        if (body) body.classList.add("theme-dark");
         setDarkMode(true);
       } else if (setting === "light") {
         root.setAttribute("data-theme", "light");
         root.classList.remove("theme-dark");
+        if (body) body.classList.remove("theme-dark");
         setDarkMode(false);
       } else {
         root.removeAttribute("data-theme");
-        const eff = computeEffectiveDark("default");
+        const eff = computeEffectiveDark("system");
         root.classList.toggle("theme-dark", eff);
+        if (body) body.classList.toggle("theme-dark", eff);
         setDarkMode(eff);
       }
     } catch (err) {
@@ -116,7 +123,6 @@ export default function Dashboard() {
     }
   }
 
-  // header toggle: flip between light/dark (affects themeSetting)
   const toggleHeaderTheme = () => {
     const currentlyDark = computeEffectiveDark(themeSetting);
     const newSetting = currentlyDark ? "light" : "dark";
@@ -138,7 +144,6 @@ export default function Dashboard() {
   const username = (typeof window !== "undefined" && localStorage.getItem("username")) || "Admin";
   const year = new Date().getFullYear();
 
-  // click outside to close user menu
   useEffect(() => {
     function onDocClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
@@ -237,7 +242,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Logout
+  // Logout — note: we intentionally keep themeSetting/theme in localStorage
   const handleLogout = async () => {
     try {
       const token = (localStorage.getItem("authToken") || localStorage.getItem("token")) || null;
@@ -250,7 +255,19 @@ export default function Dashboard() {
     } catch (err) {
       console.error("efile remove error:", err);
     } finally {
-      try { localStorage.removeItem("authToken"); localStorage.removeItem("token"); localStorage.removeItem("username"); } catch {}
+      // RESET auth but preserve theme preference
+      try {
+        const root = document.documentElement;
+        root.removeAttribute("data-theme");
+        root.classList.remove("theme-dark");
+        if (document.body) {
+          document.body.classList.remove("theme-dark");
+        }
+        // keep themeSetting and theme in localStorage so preference persists across login/logout
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+      } catch {}
       setShowMenu(false);
       navigate("/");
     }
@@ -659,7 +676,6 @@ export default function Dashboard() {
 
   // Default dashboard layout (when not in monitoring or settings)
   const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
-  const wan2Up = parseWAN(routerData?.connectivity?.WAN2Load) > 0;
 
   return (
     <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
@@ -751,33 +767,36 @@ export default function Dashboard() {
               ) : fetchError ? (
                 <div style={{ color: "crimson" }}>{fetchError}</div>
               ) : (
-                /* ---- CONNECTIVITY IMAGES (robust PUBLIC_URL method) ---- */
+                /* ---- SINGLE WAN IMAGE (PUBLIC_URL method) ---- */
                 <div className="connectivity-images-root">
-                  <div className="ci-row">
+                  <div className="ci-row" style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center" }}>
 
-                    {/* WAN1 IMAGE: show routerOn / routerOff from public/assets */}
-                    <img
-                      src={
-                        (process.env.PUBLIC_URL || "") +
-                        (wan1Up ? "/assets/routerOn.jpg" : "/assets/routerOff.jpg")
-                      }
-                      alt="WAN1"
-                      className="ci-wan"
-                      onError={(e) => {
-                        console.warn("WAN1 image failed to load:", e.currentTarget.src);
-                        e.currentTarget.style.display = "none";
-                        const ph = document.createElement("div");
-                        ph.textContent = "WAN1";
-                        ph.style.width = (e.currentTarget.width ? e.currentTarget.width + "px" : "64px");
-                        ph.style.height = (e.currentTarget.height ? e.currentTarget.height + "px" : "64px");
-                        ph.style.display = "inline-flex";
-                        ph.style.alignItems = "center";
-                        ph.style.justifyContent = "center";
-                        ph.style.background = "rgba(0,0,0,0.04)";
-                        ph.style.borderRadius = "8px";
-                        e.currentTarget.parentNode.insertBefore(ph, e.currentTarget);
-                      }}
-                    />
+                    {/* Single WAN IMAGE (WAN1) */}
+                    <div style={{ textAlign: "center" }}>
+                      <img
+                        src={
+                          (process.env.PUBLIC_URL || "") +
+                          (wan1Up ? "/assets/routerOn.jpg" : "/assets/routerOff.jpg")
+                        }
+                        alt={`WAN ${wan1Up ? "online" : "offline"}`}
+                        className="ci-wan"
+                        onError={(e) => {
+                          console.warn("WAN image failed to load:", e.currentTarget.src);
+                          e.currentTarget.style.display = "none";
+                          const ph = document.createElement("div");
+                          ph.textContent = "WAN";
+                          ph.style.width = (e.currentTarget.width ? e.currentTarget.width + "px" : "64px");
+                          ph.style.height = (e.currentTarget.height ? e.currentTarget.height + "px" : "64px");
+                          ph.style.display = "inline-flex";
+                          ph.style.alignItems = "center";
+                          ph.style.justifyContent = "center";
+                          ph.style.background = "rgba(0,0,0,0.04)";
+                          ph.style.borderRadius = "8px";
+                          e.currentTarget.parentNode.insertBefore(ph, e.currentTarget);
+                        }}
+                      />
+                      <div style={{ fontSize: 12, marginTop: 6 }}>{wan1Up ? "WAN: Online" : "WAN: Offline"}</div>
+                    </div>
 
                   </div>
                 </div>

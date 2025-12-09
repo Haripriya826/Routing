@@ -208,18 +208,52 @@ body {
 .vlan-tab { padding:8px 10px; border-radius:8px; border:none; cursor:pointer; background:transparent; }
 .vlan-tab.active { background: rgba(11,95,255,0.12); color: var(--accent); }
 
-/* buttons */
+/* ---------- Buttons (global) ---------- */
 .btn {
-  padding:8px 12px;
-  border-radius:8px;
-  border:none;
-  cursor:pointer;
-  background: var(--accent);
-  color: white;
-  font-weight:700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);   /* blue from theme */
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  transition: 0.25s ease;
 }
-.btn.muted { background: linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.02)); color: var(--text); }
-.btn.link { background: transparent; color: var(--accent); padding:8px; font-weight:600; }
+
+.btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+
+/* secondary / muted button (still aligned with main, but lighter) */
+.btn.muted {
+ 
+  background: #e2e6ea;
+  color: #1c1f23;
+  font-weight: 700;
+  border: 1px solid #c5c9ce;
+  transition: 0.25s ease;
+  
+}
+
+.btn.muted:hover {
+  background: #d5d9dd;
+  border-color: #b6bbc1;
+}
+
+/* link-style button (Back to Dashboard) */
+.btn.link {
+  background: transparent;
+  color: var(--accent);
+  padding: 8px;
+  font-weight: 600;
+}
 
 /* footer */
 .footer { text-align:center; padding:16px 12px; color:var(--muted); font-size:12px; }
@@ -245,20 +279,48 @@ body {
   padding: 20px;
 }
 .sys-settings-card h2 { margin: 0 0 12px; font-size: 20px; color:var(--text); }
-.radio-group { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
-.radio-row { display:flex; gap:12px; align-items:flex-start; cursor:pointer; padding:8px; border-radius:8px; transition:background .12s ease; }
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.radio-row {
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+  cursor:pointer;
+  padding:8px;
+  border-radius:8px;
+  transition:background .12s ease;
+}
 .radio-row:hover { background: rgba(11,95,255,0.04); }
 .radio-row input { margin-top:6px; }
 .radio-info .radio-title { font-weight:700; color:var(--text); }
 .radio-info .radio-desc { font-size:12px; color: var(--muted); }
-.sys-actions { display:flex; gap:8px; align-items:center; margin-top:8px; }
-.sys-msg { margin-top:12px; padding:10px; border-radius:8px; font-weight:600; }
+
+/* 🔹 Buttons row inside System Settings */
+.sys-actions {
+  display:flex;
+  gap: 12px;              /* space between buttons */
+  align-items:center;
+  justify-content:center; /* center align all buttons */
+  margin-top: 10px;
+  flex-wrap: wrap;        /* nice on small screens */
+}
+
+.sys-msg {
+  margin-top:12px;
+  padding:10px;
+  border-radius:8px;
+  font-weight:600;
+}
 .sys-msg.success { background:#e6ffef; color:#024d2c; }
 .sys-msg.error { background:#ffecec; color:#6b0b0b; }
 .sys-error { color:var(--danger); margin: 8px 0; }
-.btn { padding:8px 12px; border-radius:8px; border: none; cursor:pointer; background: var(--accent); color:#fff; }
-.btn.muted { background: rgba(0,0,0,0.06); color: var(--text); }
-.btn.link { background:transparent; color:var(--accent); border: none; padding:8px; }
+
+/* (removed duplicate .btn from here to avoid override) */
 
 /* ---------- Responsive ---------- */
 @media (min-width: 1200px) {
