@@ -1,10 +1,11 @@
 /* =========================================================
-   src/Dashboard.css  — Final combined
+   src/Dashboard.css  — Final combined (updated)
    - Dashboard layout, header, sidebar, cards, controls
    - theme variables + dark mode
    - Monitoring / AttachedDevices styles
    - Configuration parent + subitems (one-by-one)
    - Editable System Settings sizing via CSS variables
+   - + USER TABLE / UserSettings improvements so table content is always visible in dark mode
    ========================================================= */
 
 /* THEME VARIABLES (light defaults) */
@@ -44,6 +45,14 @@
   --sys-card-min-height:250px;
   --sys-card-max-height: 85vh;
   --sys-card-padding: 20px;
+
+  /* table-specific variables (so dark & light modes share same tokens) */
+  --table-header-bg: #eef3ff;
+  --table-row-alt-bg: #fafbff;
+  --table-border: rgba(0,0,0,0.06);
+  --table-muted: #6b7280;
+  --table-cell-bg: transparent;
+  --table-radius: 12px;
 }
 
 /* DARK MODE variables override */
@@ -60,6 +69,13 @@
   /* dark system settings tweaks */
   --sys-card-bg: #0f172a;
   --sys-card-shadow: 0 8px 26px rgba(0,0,0,0.45);
+
+  /* table-specific dark overrides */
+  --table-header-bg: rgba(255,255,255,0.04);
+  --table-row-alt-bg: rgba(255,255,255,0.02);
+  --table-border: rgba(255,255,255,0.06);
+  --table-muted: #9da5b4;
+  --table-cell-bg: transparent;
 }
 
 /* Respect reduced-motion preference */
@@ -531,27 +547,208 @@ html, body, #root {
 .footer { margin-top:12px; padding:12px 8px; text-align:center; color:var(--muted); border-top:1px solid var(--border); }
 
 /* =======================================================
-   Per-card overrides
+   USER TABLE / UserSettings integration
+   - Ensures table content is readable in both light & dark
+   - Uses the same theme tokens so nothing is hardcoded white
+   - Applies accessible contrasts for header, rows, buttons
    ======================================================= */
-.vpn-card {
-  height: 250px;
-  display: flex;
-  flex-direction: column;
-}
-.vlan-card {
-  height: 100px;
-  display: flex;
-  flex-direction: column;
-}
-.vpn-card .card-body,
-.vlan-card .card-body {
-  overflow: visible !important;
-  padding: 6px;
+
+/* Table scroll wrapper (same name used in UserSettings JSX) */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
 }
 
-/* small helper utilities */
-.hidden { display: none !important; }
-.center { display:flex; align-items:center; justify-content:center; }
+/* Base user-table styling (shared) */
+.user-table {
+  width: 1100px; /* preserved requirement */
+  max-width: 100%;
+  margin: 0 auto;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  border-radius: var(--table-radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  /* ensure it sits nicely inside the card */
+  margin-top: 12px;
+}
+
+/* header */
+.user-table thead {
+  background: var(--table-header-bg);
+}
+.user-table th {
+  padding: 14px;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text);
+  font-weight: 700;
+  border-bottom: 1px solid var(--table-border);
+}
+
+/* body cells — ensure color uses var(--text) so dark mode shows content */
+.user-table td {
+  padding: 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--table-border);
+  color: var(--text);
+  vertical-align: middle;
+  background: var(--table-cell-bg);
+}
+
+/* preserve zebra rows but using variables */
+.user-table tr:nth-child(even) {
+  background: var(--table-row-alt-bg);
+}
+
+/* hover style */
+.user-table tr:hover {
+  background: rgba(11,95,255,0.06);
+  transition: background .12s ease;
+}
+
+/* compact variant */
+.user-table.compact td,
+.user-table.compact th {
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.1;
+}
+
+/* permissions column small muted text (use table muted) */
+.user-table .permissions {
+  color: var(--table-muted);
+  font-size: 13px;
+}
+
+/* muted cells (useful for disabled rows) */
+.user-table td.muted {
+  color: var(--table-muted);
+}
+
+/* small buttons inside the table (eye/delete) */
+.user-table .small-btn,
+.user-table button.small-btn {
+  padding: 6px 10px;
+  min-width: 40px;
+  font-size: 13px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--transition-fast), filter var(--transition-fast);
+}
+.user-table .small-btn:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+/* delete button */
+.user-table .delete-btn,
+.user-table button.delete-btn {
+  padding: 6px 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+.user-table .delete-btn:hover { filter: brightness(0.96); }
+
+/* ensure icon-only buttons have accessible hit area */
+.user-table button[aria-label] { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:8px; border-radius:8px; }
+
+/* ensure focus styles are visible in dark mode */
+.user-table button:focus { outline: 3px solid rgba(90,160,255,0.18); outline-offset: 2px; }
+
+/* make sure placeholder / faint rows use muted color but remain legible */
+.user-table td.placeholder {
+  color: var(--table-muted);
+  opacity: 0.95;
+}
+
+/* Responsive behavior: on smaller screens allow user-table to shrink */
+@media (max-width: 1200px) {
+  .user-table { width: 100%; }
+}
+
+/* Modal styling used by UserSettings — ensure colors match theme tokens */
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 20, 0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  width: 420px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  animation: modalPop 0.3s ease;
+  color: var(--text);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+.modal-header h3 { margin:0; font-size:18px; color:var(--text); }
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: #888;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.close-btn:hover { color: #444; }
+
+.modal-body label { display:block; margin-top:12px; font-weight:600; color:var(--text); }
+
+.input {
+  width:100%;
+  padding:10px;
+  font-size:14px;
+  margin-top:4px;
+  border-radius:8px;
+  border:1px solid var(--table-border);
+  background: transparent;
+  color:var(--text);
+}
+
+/* device list styling */
+.device-list {
+  margin-top: 8px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+/* small modal variant */
+.modal.small-modal .modal-body { display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; }
+.modal.small-modal .modal-body .btn { align-self:center; min-width:120px; padding:8px 14px; }
+
+/* Error & success boxes */
+.error {
+  background: rgba(255,230,230,0.9);
+  color: var(--danger);
+  padding: 10px;
+  margin-top: 10px;
+  border-left: 4px solid var(--danger);
+  border-radius: 6px;
+}
+.success { background: rgba(230,255,235,0.9); color: #0b5f2b; padding:10px; margin-top:10px; border-left:4px solid #0b5f2b; border-radius:6px; }
 
 /* ============================
    Monitoring / AttachedDevices
@@ -992,7 +1189,6 @@ html, body, #root {
   flex-direction:row;
   gap: 250px;
   margin-top: 4px;
-
 }
 
 /* Save / Reset buttons row */
