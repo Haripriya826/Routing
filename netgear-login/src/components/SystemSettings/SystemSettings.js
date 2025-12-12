@@ -1,7 +1,11 @@
 // src/SystemSettings.js
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "../Dashboard/Dashboard.css"; // re-use Dashboard.css
+import "../Dashboard/Dashboard.css";
+
+// ⭐ Add Toastify imports
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function SystemSettings() {
   const navigate = useNavigate();
@@ -9,14 +13,10 @@ export default function SystemSettings() {
   const [serverSettings, setServerSettings] = useState({ theme: "system" });
   const [theme, setTheme] = useState("system");
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null);
   const [err, setErr] = useState(null);
 
-  // stable refs for timers so we can clear them on unmount
   const redirectTimerRef = useRef(null);
-  const clearMsgTimerRef = useRef(null);
 
-  // stable helper to fetch token
   const getToken = useCallback(() => {
     return (
       localStorage.getItem("authToken") ||
@@ -25,7 +25,6 @@ export default function SystemSettings() {
     );
   }, []);
 
-  // Apply a theme immediately to the document element, BODY, and localStorage
   const applyThemeToDocument = useCallback((t) => {
     try {
       const root = document.documentElement;
@@ -46,7 +45,6 @@ export default function SystemSettings() {
         localStorage.setItem("themeSetting", "light");
         localStorage.setItem("theme", "light");
       } else {
-        // system
         root.removeAttribute("data-theme");
 
         const prefersDark =
@@ -58,17 +56,13 @@ export default function SystemSettings() {
         body && body.classList.toggle("theme-dark", prefersDark);
 
         localStorage.setItem("themeSetting", "system");
-        // legacy key as actual theme
         localStorage.setItem("theme", prefersDark ? "dark" : "light");
       }
     } catch (e) {
-      // Warn but don't throw so UI still works
-      // eslint-disable-next-line no-console
       console.warn("applyThemeToDocument failed:", e);
     }
   }, []);
 
-  // Load server settings on mount
   useEffect(() => {
     let aborted = false;
 
@@ -76,10 +70,9 @@ export default function SystemSettings() {
       setLoading(true);
       setErr(null);
       try {
-        const token = getToken();
+        const token = localStorage.getItem("authToken");
         if (!token) {
           setErr("Not authenticated — please login.");
-          // redirect after a short delay
           redirectTimerRef.current = window.setTimeout(() => navigate("/"), 800);
           return;
         }
@@ -92,12 +85,10 @@ export default function SystemSettings() {
         });
 
         if (res.status === 401) {
-          setErr("Session expired — redirecting to login...");
-          try {
-            localStorage.removeItem("authToken");
-            localStorage.removeItem("token");
-            localStorage.removeItem("username");
-          } catch {}
+          setErr("Session expired — redirecting…");
+          localStorage.removeItem("authToken");
+          localStorage.removeItem("token");
+          localStorage.removeItem("username");
           redirectTimerRef.current = window.setTimeout(() => navigate("/"), 800);
           return;
         }
@@ -111,15 +102,10 @@ export default function SystemSettings() {
         if (!aborted) {
           const s = body?.settings || { theme: "system" };
           setServerSettings(s);
-          const serverTheme = s.theme ?? "system";
-          setTheme(serverTheme);
-
-          // Apply the theme immediately so the whole app reflects it
-          applyThemeToDocument(serverTheme);
+          setTheme(s.theme ?? "system");
+          applyThemeToDocument(s.theme ?? "system");
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error("load settings error", e);
         if (!aborted) setErr(e.message || "Failed to load settings");
       } finally {
         if (!aborted) setLoading(false);
@@ -127,7 +113,6 @@ export default function SystemSettings() {
     }
 
     load();
-
     return () => {
       aborted = true;
       if (redirectTimerRef.current) {
@@ -135,28 +120,17 @@ export default function SystemSettings() {
         redirectTimerRef.current = null;
       }
     };
-    // getToken and applyThemeToDocument are stable via useCallback
-    // include navigate because it's stable provided by react-router
   }, [navigate, getToken, applyThemeToDocument]);
 
-  // Change handler for radio buttons: applies immediately (preview)
   const onSelectTheme = (t) => {
     setTheme(t);
-    setMsg(null);
     setErr(null);
     applyThemeToDocument(t);
   };
 
   const onSave = async () => {
     setSaving(true);
-    setMsg(null);
     setErr(null);
-
-    // clear any previous clearMsg timer
-    if (clearMsgTimerRef.current) {
-      clearTimeout(clearMsgTimerRef.current);
-      clearMsgTimerRef.current = null;
-    }
 
     try {
       const token = getToken();
@@ -183,23 +157,23 @@ export default function SystemSettings() {
       const body = await res.json();
       const updated = body?.settings || { theme };
 
-      // persist locally and apply globally
       applyThemeToDocument(updated.theme ?? "system");
       setServerSettings(updated);
-      setMsg("Saved successfully");
+
+      // ⭐ SUCCESS TOAST
+      toast.success("Saved Successfully!", {
+        position: "top-center",
+        autoClose: 2000,
+      });
+
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error("save settings error", e);
-      setErr(e.message || "Failed to save");
+      // ⭐ ERROR TOAST
+      toast.error(e.message || "Failed to save", {
+        position:"top-center",
+        autoClose: 2000,
+      });
     } finally {
       setSaving(false);
-
-      // clear message after a while
-      clearMsgTimerRef.current = window.setTimeout(() => {
-        setMsg(null);
-        setErr(null);
-        clearMsgTimerRef.current = null;
-      }, 2500);
     }
   };
 
@@ -207,34 +181,29 @@ export default function SystemSettings() {
     const base = serverSettings.theme ?? "system";
     setTheme(base);
     applyThemeToDocument(base);
-    setMsg("Reverted to server value");
 
-    if (clearMsgTimerRef.current) {
-      clearTimeout(clearMsgTimerRef.current);
-      clearMsgTimerRef.current = null;
-    }
-    clearMsgTimerRef.current = window.setTimeout(() => {
-      setMsg(null);
-      clearMsgTimerRef.current = null;
-    }, 1500);
+    // ⭐ RESET TOAST
+    toast.info("Reverted to server value", {
+      position: "top-center",
+      autoClose: 1500,
+    });
   };
-
-  // clear any timers on unmount
-  useEffect(() => {
-    return () => {
-      if (redirectTimerRef.current) {
-        clearTimeout(redirectTimerRef.current);
-        redirectTimerRef.current = null;
-      }
-      if (clearMsgTimerRef.current) {
-        clearTimeout(clearMsgTimerRef.current);
-        clearMsgTimerRef.current = null;
-      }
-    };
-  }, []);
 
   return (
     <div className="sys-settings-root">
+      
+      {/* Toast Container */}
+     {/* Toast Container */}
+        <ToastContainer
+          position="top-center"
+          autoClose={1800}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          pauseOnHover
+        />
+
+
       <div className="sys-settings-card">
         <h2>System Settings</h2>
 
@@ -244,11 +213,7 @@ export default function SystemSettings() {
           <div className="sys-error" role="alert">{err}</div>
         ) : (
           <>
-            <div
-              className="radio-group"
-              role="radiogroup"
-              aria-label="Theme"
-            >
+            <div className="radio-group" role="radiogroup" aria-label="Theme">
               <label className="radio-row">
                 <input
                   type="radio"
@@ -296,17 +261,10 @@ export default function SystemSettings() {
               <button className="btn" onClick={onSave} disabled={saving}>
                 {saving ? "Saving…" : "Save"}
               </button>
-              <button
-                className="btn muted"
-                onClick={onReset}
-                disabled={saving}
-              >
+              <button className="btn muted" onClick={onReset} disabled={saving}>
                 Reset
               </button>
             </div>
-
-            {msg && <div className="sys-msg success" role="status">{msg}</div>}
-            {!msg && err && <div className="sys-msg error" role="alert">{err}</div>}
           </>
         )}
       </div>

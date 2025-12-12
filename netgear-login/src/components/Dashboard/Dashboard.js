@@ -1,15 +1,17 @@
-// src/Dashboard.js
+// src/components/Dashboard/Dashboard.js
 import React, { useEffect, useRef, useState } from "react";
 import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
 import AttachedDevices from "../AttachedDevices/AttachedDevices";
 import SystemSettings from "../SystemSettings/SystemSettings";
 
+// <-- use the same relative import pattern as your other components -->
+import UserSettings from "../UserSettings/UserSettings";
+
 // Helper to safely parse WAN values like "50%", "0 Mbps", "0", numeric, or null
 function parseWAN(val) {
   if (val === undefined || val === null) return 0;
   if (typeof val === "number") return val;
-  // allow digits, dot and minus; avoid unnecessary escaping to satisfy eslint
   const f = parseFloat(String(val).replace(/[^0-9.-]+/g, ""));
   return Number.isFinite(f) ? f : 0;
 }
@@ -18,14 +20,20 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const menuRef = useRef(null);
 
-  // Sidebar selection: 'dashboard' | 'monitoring' | 'settings'
+  // Sidebar: 'dashboard' | 'monitoring' | 'configuration'
   const [sidebarSelection, setSidebarSelection] = useState("dashboard");
+
+  // Configuration subpage: 'system' | 'user'
+  const [configSelection, setConfigSelection] = useState("system");
+
+  // Whether the Configuration parent is expanded to show subitems
+  const [configExpanded, setConfigExpanded] = useState(false);
 
   // Theme setting: 'system' | 'light' | 'dark'
   const [themeSetting, setThemeSetting] = useState(() => {
     try {
       const ts = localStorage.getItem("themeSetting");
-      if (ts) return ts; // "system" | "light" | "dark"
+      if (ts) return ts;
       const old = localStorage.getItem("theme");
       if (old === "dark") return "dark";
       if (old === "light") return "light";
@@ -482,142 +490,57 @@ export default function Dashboard() {
   const onChangeVlanType = (newId) => {
     const idNum = Number(newId);
     setVlanTypeId(idNum);
-    // persist later if required
   };
 
-  // --- RENDER ---
-
-  // SETTINGS view (keep sidebar visible and show SystemSettings full width)
-  if (sidebarSelection === "settings") {
-    return (
-      <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
-        <header className="dash-header">
-          <div className="header-left">
-            <div className="brand">NETGEAR</div>
-          </div>
-
-          <div className="header-desc">
-            <div className="model">{routerData?.systemInfo?.model ?? routerData?.model ?? "PR60X"}</div>
-            <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
-          </div>
-
-          <div className="header-right">
-            <button
-              onClick={toggleHeaderTheme}
-              className="icon-btn"
-              title={darkMode ? "Switch to light" : "Switch to dark"}
-              aria-pressed={darkMode}
-            >
-              <img
-                className="hdr-icon"
-                alt={darkMode ? "light" : "dark"}
-                src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"}
-              />
-            </button>
-
-            <div className="lang-wrap" role="status" aria-label="Language">
-              <img src="https://cdn-icons-png.flaticon.com/512/3177/3177361.png" alt="lang" className="hdr-icon" />
-              <div className="lang-text">(EN)</div>
-            </div>
-
-            <div className="user-wrapper" ref={menuRef}>
-              <button className="icon-btn" onClick={() => setShowMenu((s) => !s)} title={username} aria-haspopup="true" aria-expanded={showMenu}>
-                <img src="https://cdn-icons-png.flaticon.com/512/3177/3177440.png" alt="user" className="hdr-icon" />
-              </button>
-
-              {showMenu && (
-                <div className="user-menu" role="menu">
-                  <div className="user-name" title={username}>{username}</div>
-                  <button className="logout-btn" onClick={handleLogout}>Logout</button>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
-        <div className="dash-grid">
-          <aside className="sidebar">
-            <ul>
-              <li
-                className={sidebarSelection === "dashboard" ? "active" : ""}
-                onClick={() => setSidebarSelection("dashboard")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("dashboard"); }}
-              >
-                <span>🏠</span> <span>Dashboard</span>
-              </li>
-
-              <li
-                className={sidebarSelection === "monitoring" ? "active" : ""}
-                onClick={() => setSidebarSelection("monitoring")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("monitoring"); }}
-              >
-                <span>📊</span> <span>Monitoring</span>
-              </li>
-
-              <li
-                className={sidebarSelection === "settings" ? "active" : ""}
-                onClick={() => setSidebarSelection("settings")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("settings"); }}
-              >
-                <span>⚙️</span> <span>System Settings</span>
-              </li>
-            </ul>
-          </aside>
-
-          <main className="monitoring-full">
-            <SystemSettings />
-          </main>
-        </div>
-
-        <footer className="footer">© {year} Netgear | All Rights Reserved</footer>
-      </div>
-    );
+  // --- SIDEBAR ACTION HELPERS ---
+  function selectDashboard() {
+    setSidebarSelection("dashboard");
+    setConfigExpanded(false);
   }
 
-  // If user clicked Monitoring, show the AttachedDevices 'page' (full area).
+  function selectMonitoring() {
+    setSidebarSelection("monitoring");
+    setConfigExpanded(false);
+  }
+
+  // IMPORTANT: clicking the parent only toggles expansion now — it DOES NOT navigate.
+  function toggleConfiguration() {
+    setConfigExpanded((s) => !s);
+  }
+
+  // click a subitem -> open configuration page for that subitem
+  function selectConfigSub(sub) {
+    setSidebarSelection("configuration");
+    setConfigExpanded(true);
+    setConfigSelection(sub);
+  }
+
+  // --- RENDER ---
+  const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
+
+  // Monitoring full-width
   if (sidebarSelection === "monitoring") {
     return (
       <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
+        {/* header omitted for brevity — same as previous */}
         <header className="dash-header">
-          <div className="header-left">
-            <div className="brand">NETGEAR</div>
-          </div>
-
+          <div className="header-left"><div className="brand">NETGEAR</div></div>
           <div className="header-desc">
             <div className="model">{routerData?.systemInfo?.model ?? routerData?.model ?? "PR60X"}</div>
             <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
           </div>
-
           <div className="header-right">
-            <button
-              onClick={toggleHeaderTheme}
-              className="icon-btn"
-              title={darkMode ? "Switch to light" : "Switch to dark"}
-              aria-pressed={darkMode}
-            >
-              <img
-                className="hdr-icon"
-                alt={darkMode ? "light" : "dark"}
-                src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"}
-              />
+            <button onClick={toggleHeaderTheme} className="icon-btn" title={darkMode ? "Switch to light" : "Switch to dark"} aria-pressed={darkMode}>
+              <img className="hdr-icon" alt={darkMode ? "light" : "dark"} src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"} />
             </button>
-
             <div className="lang-wrap" role="status" aria-label="Language">
               <img src="https://cdn-icons-png.flaticon.com/512/3177/3177361.png" alt="lang" className="hdr-icon" />
               <div className="lang-text">(EN)</div>
             </div>
-
             <div className="user-wrapper" ref={menuRef}>
               <button className="icon-btn" onClick={() => setShowMenu((s) => !s)} title={username} aria-haspopup="true" aria-expanded={showMenu}>
                 <img src="https://cdn-icons-png.flaticon.com/512/3177/3177440.png" alt="user" className="hdr-icon" />
               </button>
-
               {showMenu && (
                 <div className="user-menu" role="menu">
                   <div className="user-name" title={username}>{username}</div>
@@ -631,40 +554,33 @@ export default function Dashboard() {
         <div className="dash-grid">
           <aside className="sidebar">
             <ul>
-              <li
-                className={sidebarSelection === "dashboard" ? "active" : ""}
-                onClick={() => setSidebarSelection("dashboard")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("dashboard"); }}
-              >
+              <li className={sidebarSelection === "dashboard" ? "active" : ""} onClick={selectDashboard} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectDashboard(); }}>
                 <span>🏠</span> <span>Dashboard</span>
               </li>
 
-              <li
-                className={sidebarSelection === "monitoring" ? "active" : ""}
-                onClick={() => setSidebarSelection("monitoring")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("monitoring"); }}
-              >
+              <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
                 <span>📊</span> <span>Monitoring</span>
               </li>
 
-              <li
-                className={sidebarSelection === "settings" ? "active" : ""}
-                onClick={() => setSidebarSelection("settings")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("settings"); }}
-              >
-                <span>⚙️</span> <span>System Settings</span>
+              <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
+                <span>⚙️</span> <span>Configuration</span>
               </li>
+
+              {configExpanded && (
+                <li className="sidebar-sublist" aria-label="Configuration subitems">
+                  <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
+                    <span>🛠️</span>System Settings
+                  </div>
+
+                  <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
+                    <span>👤</span>User Settings
+                  </div>
+                </li>
+              )}
             </ul>
           </aside>
 
           <main className="monitoring-full">
-            {/* AttachedDevices is shown full-width here */}
             <AttachedDevices />
           </main>
         </div>
@@ -674,45 +590,112 @@ export default function Dashboard() {
     );
   }
 
-  // Default dashboard layout (when not in monitoring or settings)
-  const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
+  // Configuration page (only when a subitem was clicked)
+  if (sidebarSelection === "configuration") {
+    const showSystem = configSelection === "system";
+    const showUser = configSelection === "user";
+    return (
+      <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
+        {/* header same as above */}
+        <header className="dash-header">
+          <div className="header-left"><div className="brand">NETGEAR</div></div>
+          <div className="header-desc">
+            <div className="model">{routerData?.systemInfo?.model ?? routerData?.model ?? "PR60X"}</div>
+            <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
+          </div>
+          <div className="header-right">
+            <button onClick={toggleHeaderTheme} className="icon-btn" title={darkMode ? "Switch to light" : "Switch to dark"} aria-pressed={darkMode}>
+              <img className="hdr-icon" alt={darkMode ? "light" : "dark"} src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"} />
+            </button>
+            <div className="lang-wrap" role="status" aria-label="Language">
+              <img src="https://cdn-icons-png.flaticon.com/512/3177/3177361.png" alt="lang" className="hdr-icon" />
+              <div className="lang-text">(EN)</div>
+            </div>
+            <div className="user-wrapper" ref={menuRef}>
+              <button className="icon-btn" onClick={() => setShowMenu((s) => !s)} title={username} aria-haspopup="true" aria-expanded={showMenu}>
+                <img src="https://cdn-icons-png.flaticon.com/512/3177/3177440.png" alt="user" className="hdr-icon" />
+              </button>
+              {showMenu && (
+                <div className="user-menu" role="menu">
+                  <div className="user-name" title={username}>{username}</div>
+                  <button className="logout-btn" onClick={handleLogout}>Logout</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
-  return (
-    <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
-      <header className="dash-header">
-        <div className="header-left">
-          <div className="brand">NETGEAR</div>
+        <div className="dash-grid">
+          <aside className="sidebar">
+            <ul>
+              <li className={sidebarSelection === "dashboard" ? "active" : ""} onClick={selectDashboard} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectDashboard(); }}>
+                <span>🏠</span> <span>Dashboard</span>
+              </li>
+
+              <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
+                <span>📊</span> <span>Monitoring</span>
+              </li>
+
+              <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
+                <span>⚙️</span> <span>Configuration</span>
+              </li>
+
+              {configExpanded && (
+                <li className="sidebar-sublist" aria-label="Configuration subitems">
+                  <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
+                    <span>🛠️</span>System Settings
+                  </div>
+
+                  <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
+                    <span>👤</span>User Settings
+                  </div>
+                </li>
+              )}
+            </ul>
+          </aside>
+
+          <main className="monitoring-full">
+            {loading ? (
+              <div>Loading configuration…</div>
+            ) : fetchError ? (
+              <div style={{ color: "crimson" }}>{fetchError}</div>
+            ) : showSystem ? (
+              <SystemSettings />
+            ) : showUser ? (
+              <UserSettings />
+            ) : (
+              <div style={{ padding: 20 }}>Select a configuration page.</div>
+            )}
+          </main>
         </div>
 
+        <footer className="footer">© {year} Netgear | All Rights Reserved</footer>
+      </div>
+    );
+  }
+
+  // Default dashboard layout
+  return (
+    <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
+      {/* header and main content exactly as previous implementation */}
+      <header className="dash-header">
+        <div className="header-left"><div className="brand">NETGEAR</div></div>
         <div className="header-desc">
           <div className="model">{routerData?.systemInfo?.model ?? routerData?.model ?? "PR60X"}</div>
           <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
         </div>
-
         <div className="header-right">
-          <button
-            onClick={toggleHeaderTheme}
-            className="icon-btn"
-            title={darkMode ? "Switch to light" : "Switch to dark"}
-            aria-pressed={darkMode}
-          >
-            <img
-              className="hdr-icon"
-              alt={darkMode ? "light" : "dark"}
-              src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"}
-            />
+          <button onClick={toggleHeaderTheme} className="icon-btn" title={darkMode ? "Switch to light" : "Switch to dark"} aria-pressed={darkMode}>
+            <img className="hdr-icon" alt={darkMode ? "light" : "dark"} src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"} />
           </button>
-
           <div className="lang-wrap" role="status" aria-label="Language">
             <img src="https://cdn-icons-png.flaticon.com/512/3177/3177361.png" alt="lang" className="hdr-icon" />
             <div className="lang-text">(EN)</div>
           </div>
-
           <div className="user-wrapper" ref={menuRef}>
             <button className="icon-btn" onClick={() => setShowMenu((s) => !s)} title={username} aria-haspopup="true" aria-expanded={showMenu}>
               <img src="https://cdn-icons-png.flaticon.com/512/3177/3177440.png" alt="user" className="hdr-icon" />
             </button>
-
             {showMenu && (
               <div className="user-menu" role="menu">
                 <div className="user-name" title={username}>{username}</div>
@@ -726,38 +709,33 @@ export default function Dashboard() {
       <div className="dash-grid">
         <aside className="sidebar">
           <ul>
-            <li
-              className={sidebarSelection === "dashboard" ? "active" : ""}
-              onClick={() => setSidebarSelection("dashboard")}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("dashboard"); }}
-            >
+            <li className={sidebarSelection === "dashboard" ? "active" : ""} onClick={selectDashboard} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectDashboard(); }}>
               <span>🏠</span> <span>Dashboard</span>
             </li>
 
-            <li
-              className={sidebarSelection === "monitoring" ? "active" : ""}
-              onClick={() => setSidebarSelection("monitoring")}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("monitoring"); }}
-            >
+            <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
               <span>📊</span> <span>Monitoring</span>
             </li>
 
-            <li
-              className={sidebarSelection === "settings" ? "active" : ""}
-              onClick={() => setSidebarSelection("settings")}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setSidebarSelection("settings"); }}
-            >
-              <span>⚙️</span> <span>System Settings</span>
+            <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
+              <span>⚙️</span> <span>Configuration</span>
             </li>
+
+            {configExpanded && (
+              <li className="sidebar-sublist" aria-label="Configuration subitems">
+                <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
+                  <span>🛠️</span>  System Settings
+                </div>
+
+                <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
+                  <span>👤</span>User Settings
+                </div>
+              </li>
+            )}
           </ul>
         </aside>
 
+        {/* main columns (connectivity / system info / right-col) left unchanged from your original file */}
         <main className="col-connectivity">
           <section className="card connectivity-card">
             <div className="card-title">Connectivity</div>
@@ -767,17 +745,11 @@ export default function Dashboard() {
               ) : fetchError ? (
                 <div style={{ color: "crimson" }}>{fetchError}</div>
               ) : (
-                /* ---- SINGLE WAN IMAGE (PUBLIC_URL method) ---- */
                 <div className="connectivity-images-root">
                   <div className="ci-row" style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "center" }}>
-
-                    {/* Single WAN IMAGE (WAN1) */}
                     <div style={{ textAlign: "center" }}>
                       <img
-                        src={
-                          (process.env.PUBLIC_URL || "") +
-                          (wan1Up ? "/assets/routerOn.jpg" : "/assets/routerOff.jpg")
-                        }
+                        src={(process.env.PUBLIC_URL || "") + (wan1Up ? "/assets/routerOn.jpg" : "/assets/routerOff.jpg")}
                         alt={`WAN ${wan1Up ? "online" : "offline"}`}
                         className="ci-wan"
                         onError={(e) => {
@@ -797,7 +769,6 @@ export default function Dashboard() {
                       />
                       <div style={{ fontSize: 12, marginTop: 6 }}>{wan1Up ? "WAN: Online" : "WAN: Offline"}</div>
                     </div>
-
                   </div>
                 </div>
               )}
@@ -867,12 +838,7 @@ export default function Dashboard() {
                 <>
                   <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
                     <div style={{ minWidth: "120px", fontWeight: 700 }}>VLAN Status</div>
-                    <select
-                      value={vlanTypeId != null ? String(vlanTypeId) : ""}
-                      onChange={(e) => onChangeVlanType(e.target.value)}
-                      className="vlan-select"
-                      aria-label="VLAN Type ID"
-                    >
+                    <select value={vlanTypeId != null ? String(vlanTypeId) : ""} onChange={(e) => onChangeVlanType(e.target.value)} className="vlan-select" aria-label="VLAN Type ID">
                       {vlanTypes.map(t => (
                         <option key={t.id} value={String(t.id)}>{String(t.id)}</option>
                       ))}
@@ -880,20 +846,11 @@ export default function Dashboard() {
                   </div>
 
                   <div className="vlan-tabs" role="tablist" aria-label="VLAN protocol tabs">
-                    <button
-                      role="tab"
-                      aria-selected={vlanActiveTab === "ipv4"}
-                      className={`vlan-tab ${routerData?.vlanStatus?.ipv4 ? "enabled" : "disabled"} ${vlanActiveTab === "ipv4" ? "active" : ""}`}
-                      onClick={() => setVlanActiveTab("ipv4")}>
+                    <button role="tab" aria-selected={vlanActiveTab === "ipv4"} className={`vlan-tab ${routerData?.vlanStatus?.ipv4 ? "enabled" : "disabled"} ${vlanActiveTab === "ipv4" ? "active" : ""}`} onClick={() => setVlanActiveTab("ipv4")}>
                       IPv4
                     </button>
 
-                    <button
-                      role="tab"
-                      aria-selected={vlanActiveTab === "ipv6"}
-                      className={`vlan-tab ${routerData?.vlanStatus?.ipv6 ? "enabled" : "disabled"} ${vlanActiveTab === "ipv6" ? "active" : ""}`}
-                      onClick={() => setVlanActiveTab("ipv6")}
-                    >
+                    <button role="tab" aria-selected={vlanActiveTab === "ipv6"} className={`vlan-tab ${routerData?.vlanStatus?.ipv6 ? "enabled" : "disabled"} ${vlanActiveTab === "ipv6" ? "active" : ""}`} onClick={() => setVlanActiveTab("ipv6")}>
                       IPv6
                     </button>
                   </div>

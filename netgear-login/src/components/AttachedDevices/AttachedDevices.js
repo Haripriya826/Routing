@@ -14,22 +14,34 @@ export default function AttachedDevices() {
   // -----------------------------
   useEffect(() => {
     async function fetchDevices() {
-      try {
-        const res = await fetch("http://localhost:5000/api/devices");
-        const json = await res.json();
+  try {
+    const token = localStorage.getItem("authToken");
 
-        if (!json.status) {
-          console.error("Backend error:", json.message);
-          setDevices([]);
-          return;
-        }
-
-        setDevices(json.devices || []);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setDevices([]);
-      }
+    if (!token) {
+      console.error("Token missing");
+      return;
     }
+
+    const res = await fetch("http://localhost:5000/api/devices", {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const json = await res.json();
+
+    if (!json.status) {
+      console.error("Backend error:", json.message);
+      return;
+    }
+
+    setDevices(json.devices || []);
+  } catch (err) {
+    console.error("Error loading devices:", err);
+  }
+}
+
 
     fetchDevices();
   }, []);

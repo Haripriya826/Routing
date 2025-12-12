@@ -1,0 +1,700 @@
+/* UserSettings.css
+   Clean, compact styling for your UserSettings form component.
+   - Neutral, modern look
+   - Accessible focus states
+   - Small responsive tweaks
+   - Table width forced to 1100px with responsive scroll fallback
+*/
+
+/* variables */
+:root{
+  --bg: #ffffff;
+  --panel-bg: #fbfbfc;
+  --muted: #6b7280;
+  --text: #111827;
+  --accent:  #0064e0;
+  --accent-contrast: #ffffff;
+  --danger: #ef4444;
+  --input-border: #e6e7eb;
+  --shadow: 0 6px 18px rgba(16,24,40,0.06);
+  --radius: 10px;
+  --gap: 12px;
+  --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* container (outer wrapper you inline-styled) */
+.user-settings {
+  font-family: var(--font-family);
+  color: var(--text);
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  max-width: 520px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Title */
+.user-settings h2 {
+  margin: 0 0 14px 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* Tab buttons */
+.us-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.us-tabs .btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all .14s ease;
+  font-size: 13px;
+}
+
+.us-tabs .btn:hover { transform: translateY(-1px); }
+
+.us-tabs .btn.active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 6px 18px rgba(14,165,164,0.12);
+  border-color: rgba(0,0,0,0.04);
+}
+
+/* muted variant for reset buttons etc. */
+.btn.muted {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid #f1f2f4;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+/* generic button used in forms (re-usable) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn:active { transform: translateY(0.5px); }
+
+/* form labels & inputs */
+label {
+  font-size: 13px;
+  color: #111827;
+  display: block;
+  margin-bottom: 6px;
+  line-height: 1.1;
+}
+
+.input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: box-shadow .12s ease, border-color .12s ease;
+  margin-top: 6px;
+}
+.input::placeholder { color: #9aa0a6; }
+
+/* focus state */
+.input:focus {
+  border-color:  #0064e0;
+  box-shadow: 0 6px 18px rgba(14,165,164,0.08);
+}
+
+/* small helper states */
+.status-error { color: var(--danger); margin-bottom: 8px; font-size: 13px; }
+.status-ok { color:  #0064e0; margin-bottom: 8px; font-size: 13px; }
+
+/* layout for form buttons row */
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* responsiveness */
+@media (max-width: 520px) {
+  .user-settings { padding: 16px; }
+  .btn { padding: 8px 12px; font-size: 14px; }
+}
+
+/* small utility */
+.mt-8 { margin-top: 8px; }
+.mb-8 { margin-bottom: 8px; }
+
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+.user-table th,
+.user-table td {
+  border: 1px solid #ccc;
+  padding: 10px;
+}
+
+.add-btn {
+  margin-bottom: 10px;
+}
+
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: white;
+  padding: 20px;
+  width: 380px;
+  border-radius: 8px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.device-list {
+  border: 1px solid #eee;
+  padding: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+  background: #fafafa;
+}
+
+.device-item {
+  margin-bottom: 4px;
+}
+
+.close-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  
+}
+
+.error { color: red; margin-top: 10px; }
+.success { color: green; margin-top: 10px; }
+
+/* ============================
+   GLOBAL PAGE LAYOUT
+   ============================ */
+.user-settings-wrapper {
+  background: var(--bg);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: var(--surface-shadow);
+  max-width: 900px; /* will be overridden below to allow larger table */
+  margin: auto;
+}
+
+/* Title */
+.user-settings-wrapper h2 {
+  font-size: 22px;
+  margin-bottom: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Add User Button */
+.add-btn {
+  background: var(--accent);
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: 0.25s ease;
+}
+
+.add-btn:hover {
+  filter: brightness(1.1);
+}
+
+/* ============================
+   USER TABLE (base)
+   ============================ */
+.user-table {
+  width: 100%;
+  margin-top: 20px;
+  border-collapse: collapse;
+  background: var(--card-bg);
+  box-shadow: var(--surface-shadow);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.user-table th {
+  background: #e8eef8;
+  padding: 12px;
+  font-weight: 700;
+  color: #333;
+  text-align: left;
+  font-size: 14px;
+}
+
+.user-table td {
+  padding: 12px;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.user-table tr:nth-child(even) {
+  background: #fafbfd;
+}
+
+.user-table tr:hover {
+  background: rgba(11, 95, 255, 0.07);
+  transition: 0.2s ease;
+}
+
+/* Buttons inside table */
+.small-btn {
+  padding: 6px 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.small-btn:hover {
+  filter: brightness(1.1);
+}
+
+.delete-btn {
+  background: #d9534f;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+}
+
+.delete-btn:hover {
+  background: #c9302c;
+}
+
+/* ============================
+   MODAL STYLING
+   ============================ */
+.modal-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 10, 20, 0.65);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  width: 420px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+  padding: 20px;
+  animation: modalPop 0.3s ease;
+}
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Modal Header */
+.modal-header {
+  
+  justify-content: space-between;
+  align-items: center;   
+  text-align: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: #888;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.close-btn:hover {
+  color: #444;
+}
+
+/* Modal Body */
+.modal-body label {
+  display: block;
+  margin-top: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
+  margin-top: 4px;
+  border-radius: 8px;
+  border: 1px solid #dcdde1;
+  background: #fafbff;
+}
+
+.input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Checkbox Group */
+.device-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.device-list label {
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Modal Buttons */
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.btn:hover {
+  filter: brightness(1.15);
+}
+
+.btn.muted {
+  background: #e3e6eb;
+  color: #2f3237;
+}
+
+.btn.muted:hover {
+  background: #d7d7dc;
+}
+
+/* Error & Success Boxes */
+.error {
+  background: #ffe5e5;
+  color: #c62828;
+  padding: 10px;
+  margin-top: 10px;
+  border-left: 4px solid #c62828;
+  border-radius: 6px;
+}
+
+.success {
+  background: #e5ffe9;
+  color: #2e7d32;
+  padding: 10px;
+  margin-top: 10px;
+  border-left: 4px solid #2e7d32;
+  border-radius: 6px;
+}
+
+/* Remove unwanted global padding */
+.user-settings-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0px 20px 20px 20px; /* remove top padding */
+}
+
+/* Title */
+.user-settings-wrapper h2 {
+  margin-top: 0;
+  padding-top: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Add User Button */
+.add-btn {
+  margin-bottom: 15px;
+  background: #0077ff;
+  color: white;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.add-btn:hover {
+  background: #005fcc;
+}
+
+/* TABLE STYLING - PROFESSIONAL LOOK (reaffirm) */
+.user-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.user-table thead {
+  background: #eef3ff;
+}
+
+.user-table th {
+  padding: 14px;
+  text-align: left;
+  font-size: 14px;
+  color: #333;
+  font-weight: 700;
+}
+
+.user-table td {
+  padding: 14px;
+  border-bottom: 1px solid #f2f2f2;
+  font-size: 14px;
+}
+
+.user-table tr:nth-child(even) {
+  background: #fafbff;
+}
+
+.user-table tr:hover {
+  background: rgba(0, 120, 255, 0.08);
+  transition: 0.2s ease;
+}
+
+/* Buttons inside table */
+.small-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+  background: #0077ff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.small-btn:hover {
+  background: #005fcc;
+}
+
+.delete-btn {
+  padding: 6px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  background: #d9534f;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.delete-btn:hover {
+  background: #c9302c;
+}
+
+/* Modal body styling */
+.modal-body label {
+  font-weight: 600;
+  margin-top: 12px;
+  display: block;
+}
+
+.input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #c9c9c9;
+  background: #fafafa;
+  font-size: 14px;
+}
+
+.input:focus {
+  border-color: #0077ff;
+}
+
+/* Permission checkboxes */
+.device-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Modal container styling */
+.modal-bg {
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  width: 430px;
+  border-radius: 12px;
+  padding: 20px;
+  animation: modalPop 0.25s ease;
+  background: #ffffff;
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes modalPop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.btn.muted {
+  background: #e3e3e3;
+  color: #333;
+}
+
+.btn.muted:hover {
+  background: #d0d0d0;
+}
+
+/* ============================
+   TABLE SIZING / RESPONSIVENESS
+   (ensure table reaches 1100px and scrolls on small screens)
+   ============================ */
+
+/* Make the page wrapper wide enough for the table */
+.user-settings-wrapper {
+  max-width: 1300px; /* must be >= 1100px */
+}
+
+/* Optional: scroll container - wrap your table in .table-scroll in JSX */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+}
+
+/* Preferred sizing: have table be exactly 1100px */
+.table-scroll .user-table,
+.user-settings-wrapper .user-table,
+.user-table {
+  width: 1100px;
+  max-width: none;
+  margin: 0 auto;
+  table-layout: auto;
+}
+
+/* Guarantee (fallback) if other CSS files override earlier rules */
+.user-settings-wrapper .user-table {
+  width: 1100px !important;
+  max-width: none !important;
+}
+
+/* Make table responsive on very small screens: allow it to shrink a bit */
+@media (max-width: 1200px) {
+  .table-scroll .user-table,
+  .user-settings-wrapper .user-table,
+  .user-table {
+    width: 100%;
+    max-width: 1100px;
+  }
+}
+
+/* Optional: compact variant to reduce row height */
+.user-table.compact td,
+.user-table.compact th {
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.1;
+}
+/* Center contents of the small modal and align the OK button */
+.modal.small-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;    /* horizontally center children */
+  text-align: center;     /* center text inside paragraphs/labels */
+  gap: 12px;              /* small spacing between elements */
+}
+
+/* Make the OK button look like the primary modal action and stay centered */
+.modal.small-modal .modal-body .btn {
+  align-self: center;     /* ensure button is centered */
+  min-width: 120px;       /* optional: give it a comfortable width */
+  padding: 8px 14px;
+}
+
+/* If you have additional inline actions, keep them centered too */
+.modal.small-modal .modal-body .form-actions,
+.modal.small-modal .modal-body > .actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}

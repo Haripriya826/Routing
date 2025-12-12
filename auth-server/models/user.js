@@ -10,10 +10,23 @@ const SettingsSchema = new mongoose.Schema({
 }, { _id: false });
 
 const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
+  username: { type: String, required: false, index: true }, // optional but useful for your frontend
+  email: { type: String, required: true, unique: true, index: true },
   passwordHash: { type: String, required: true },
-  
+
   settings: { type: SettingsSchema, default: () => ({}) },
+  devices: [{ type: mongoose.Schema.Types.ObjectId, ref: "Device" }],
+  routers: [{ type: mongoose.Schema.Types.ObjectId, ref: "Router" }],
+  permissions: {
+    canMonitor: { type: Boolean, default: true },
+    canConfigure: { type: Boolean, default: false }
+  }
+
 }, { timestamps: true });
+
+// create a small convenience virtual to return a display name
+UserSchema.virtual("displayName").get(function () {
+  return this.username || this.email;
+});
 
 module.exports = mongoose.model("User", UserSchema);
