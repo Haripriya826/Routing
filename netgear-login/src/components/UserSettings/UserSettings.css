@@ -15,7 +15,7 @@
   --font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   --table-header-bg: #eef3ff;
   --table-row-alt-bg: #fafbfd;
-  --table-border: rgba(0,0,0,0.06);
+  --table-border: rgba(0, 0, 0, 0.06);
 }
 
 /* container (outer wrapper you inline-styled) */
@@ -421,6 +421,10 @@ label {
    Paste at the end of UserSettings.css
    ========================= */
 
+/* =========================
+   DARK MODE — FIXED VERSION
+   ========================= */
+
 .theme-dark {
   --bg: #07101a;
   --panel-bg: #0b151e;
@@ -430,15 +434,15 @@ label {
   --accent: #3ea6ff;
   --accent-contrast: #041825;
   --danger: #ff7b7b;
-  --input-border: #1e2936;
+  --input-border: rgba(255,255,255,0.18);   /* FIXED visible border */
   --shadow: 0 8px 24px rgba(2,6,23,0.6);
   --surface-shadow: 0 10px 28px rgba(2,6,23,0.6);
   --table-header-bg: rgba(255,255,255,0.03);
   --table-row-alt-bg: rgba(255,255,255,0.02);
-  --table-border: rgba(255,255,255,0.04);
+  --table-border: rgba(255,255,255,0.07);
 }
 
-/* Apply dark visuals when .theme-dark is present (selectors tuned) */
+/* Apply dark visuals */
 .theme-dark body,
 .theme-dark .user-settings,
 .theme-dark .user-settings-wrapper,
@@ -450,77 +454,103 @@ label {
   color: var(--text);
 }
 
+/* Modal fix — make borders visible */
+.theme-dark .modal {
+  background: #0c1622;                            /* slightly brighter */
+  border: 1px solid rgba(255,255,255,0.15);       /* FIXED */
+  box-shadow: var(--surface-shadow);
+}
+
+/* Device list fix */
+.theme-dark .device-list {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.12);       /* FIXED */
+  color: var(--text);
+}
+
+/* Table fixes */
 .theme-dark .user-table {
   box-shadow: var(--surface-shadow);
-  border: 1px solid rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
 .theme-dark .user-table thead {
   background: var(--table-header-bg);
 }
+
 .theme-dark .user-table th,
 .theme-dark .user-table td {
   border-color: var(--table-border);
   color: var(--text);
 }
+
 .theme-dark .user-table tr:nth-child(even) td {
   background: var(--table-row-alt-bg);
 }
-.theme-dark .user-table tr:nth-child(odd) td {
-  background: transparent;
-}
-.theme-dark .user-table tr:hover td {
-  background: rgba(62,166,255,0.06);
-}
 
-/* Inputs in dark */
+/* Input styling — FIXED */
 .theme-dark .input {
-  background: transparent;
-  border-color: var(--input-border);
+  background: rgba(255,255,255,0.03);
+  border-color: rgba(255,255,255,0.18);           /* FIXED VISIBLE BORDER */
   color: var(--text);
 }
-.theme-dark .input::placeholder { color: #6f7b86; }
-.theme-dark .input:focus {
-  box-shadow: 0 8px 20px rgba(62,166,255,0.06);
-  border-color: var(--accent);
+
+.theme-dark .input::placeholder {
+  color: rgba(255,255,255,0.45);
 }
 
-/* Buttons in dark */
+.theme-dark .input:focus {
+  border-color: var(--accent);
+  background: rgba(255,255,255,0.06);
+  box-shadow: 0 0 0 2px rgba(62,166,255,0.25);    /* glow effect */
+}
+
+/* Buttons */
 .theme-dark .btn {
   background: var(--accent);
   color: var(--accent-contrast);
 }
-.theme-dark .btn.muted {
-  background: rgba(255,255,255,0.03);
-  color: var(--muted);
-  border: 1px solid rgba(255,255,255,0.04);
-}
-.theme-dark .add-btn { background: #2a8cff; color: var(--accent-contrast); }
-.theme-dark .small-btn { background: #2a8cff; color: var(--accent-contrast); }
-.theme-dark .delete-btn { background: #ff6b6b; color: var(--accent-contrast); }
 
-/* status boxes in dark */
+.theme-dark .btn.muted {
+  background: rgba(255,255,255,0.04);
+  color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.theme-dark .add-btn,
+.theme-dark .small-btn {
+  background: #2a8cff;
+  color: var(--accent-contrast);
+}
+
+.theme-dark .delete-btn {
+  background: #ff6b6b;
+  color: var(--accent-contrast);
+}
+
+/* status boxes */
 .theme-dark .error {
   background: rgba(255,120,120,0.08);
   color: #ffdede;
   border-left-color: rgba(255,120,120,0.35);
 }
+
 .theme-dark .success {
   background: rgba(80,220,140,0.07);
   color: #d7ffea;
   border-left-color: rgba(80,220,140,0.18);
 }
 
-/* Focus outlines in dark */
+/* focus outlines */
 .theme-dark .user-table td button:focus,
 .theme-dark .btn:focus {
   outline: 3px solid rgba(62,166,255,0.18);
   outline-offset: 2px;
 }
 
-/* Respect OS preference automatically */
+/* Respect OS dark-preference */
 @media (prefers-color-scheme: dark) {
-  :root{
+  :root {
     --bg: #07101a;
     --panel-bg: #0b151e;
     --card-bg: #07121a;
@@ -529,11 +559,17 @@ label {
     --accent: #3ea6ff;
     --accent-contrast: #041825;
     --danger: #ff7b7b;
-    --input-border: #1e2936;
-    --shadow: 0 8px 24px rgba(2,6,23,0.6);
-    --surface-shadow: 0 10px 28px rgba(2,6,23,0.6);
+    --input-border: rgba(255,255,255,0.18);   /* FIXED */
     --table-header-bg: rgba(255,255,255,0.03);
     --table-row-alt-bg: rgba(255,255,255,0.02);
-    --table-border: rgba(255,255,255,0.04);
+    --table-border: rgba(255,255,255,0.07);
   }
+}
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  font-size: 14px;
 }

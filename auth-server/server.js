@@ -1,3 +1,7 @@
+// =======================
+// server.js (UPDATED)
+// =======================
+
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -19,7 +23,7 @@ async function connectDB() {
 connectDB();
 
 // MODELS
-const User = require("./models/user");   
+const User = require("./models/user");
 const Device = require("./models/Device");
 const Router = require("./models/Router");
 const Efile = require("./models/Efile");
@@ -30,11 +34,13 @@ const JWT_SECRET = process.env.JWT_SECRET || "replace_this_in_prod";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "8h";
 
 // Middleware
-app.use(cors({
-  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"]
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+  })
+);
 app.use(express.json());
 
 // ----------------- AUTH MIDDLEWARE -----------------
@@ -42,12 +48,16 @@ async function requireAuth(req, res, next) {
   try {
     const header = req.headers.authorization || "";
     const token = header.replace("Bearer ", "");
-    if (!token) return res.status(401).json({ status: false, message: "No token provided" });
+    if (!token)
+      return res
+        .status(401)
+        .json({ status: false, message: "No token provided" });
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
     const user = await User.findById(decoded.sub || decoded.id).exec();
-    if (!user) return res.status(401).json({ status: false, message: "User not found" });
+    if (!user)
+      return res.status(401).json({ status: false, message: "User not found" });
 
     req.user = user;
     req.token = token;
@@ -55,7 +65,9 @@ async function requireAuth(req, res, next) {
     next();
   } catch (err) {
     console.error("Auth error:", err);
-    return res.status(401).json({ status: false, message: "Invalid or expired token" });
+    return res
+      .status(401)
+      .json({ status: false, message: "Invalid or expired token" });
   }
 }
 
@@ -67,20 +79,31 @@ app.post("/api/register", async (req, res) => {
     const { username, email, password } = req.body || {};
 
     if (!email || !password)
-      return res.status(400).json({ status: false, message: "Email and password required" });
+      return res
+        .status(400)
+        .json({ status: false, message: "Email and password required" });
 
     const existing = await User.findOne({ $or: [{ email }, { username }] });
     if (existing)
-      return res.status(409).json({ status: false, message: "User already exists" });
+      return res
+        .status(409)
+        .json({ status: false, message: "User already exists" });
 
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
-      username,
-      email,
-      passwordHash,
-      settings: { theme: "system" }
-    });
+        username,
+        email,
+        passwordHash,
+        settings: { theme: "system" },
+
+        // ⭐ VERY IMPORTANT
+        permissions: {
+          canMonitor: false,
+          canConfigure: false,
+        },
+      });
+
 
     res.json({ status: true, user });
   } catch (err) {
@@ -93,19 +116,27 @@ app.post("/api/register", async (req, res) => {
 app.post("/api/login", async (req, res) => {
   try {
     const { username, email, password } = req.body || {};
-    if (!password) return res.status(400).json({ status: false, message: "Password required" });
+    if (!password)
+      return res
+        .status(400)
+        .json({ status: false, message: "Password required" });
 
     const user = await User.findOne({
-      $or: [
-        username ? { username } : null,
-        email ? { email } : null,
-      ].filter(Boolean)
+      $or: [username ? { username } : null, email ? { email } : null].filter(
+        Boolean
+      ),
     });
 
-    if (!user) return res.status(401).json({ status: false, message: "Invalid credentials" });
+    if (!user)
+      return res
+        .status(401)
+        .json({ status: false, message: "Invalid credentials" });
 
     const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(401).json({ status: false, message: "Invalid credentials" });
+    if (!match)
+      return res
+        .status(401)
+        .json({ status: false, message: "Invalid credentials" });
 
     const token = jwt.sign(
       { sub: user._id.toString(), username: user.username || user.email },
@@ -116,7 +147,7 @@ app.post("/api/login", async (req, res) => {
     await Efile.create({
       token,
       username: user.username || user.email,
-      loggedAt: new Date()
+      loggedAt: new Date(),
     });
 
     res.json({ status: true, token });
@@ -137,6 +168,8 @@ app.delete("/api/efile/remove", requireAuth, async (req, res) => {
 });
 
 // ----------------- USER SETTINGS -----------------
+
+// ⭐ UPDATED /api/me — includes permissions + username for frontend navigation
 app.get("/api/me", requireAuth, async (req, res) => {
   try {
     const user = req.user;
@@ -145,36 +178,48 @@ app.get("/api/me", requireAuth, async (req, res) => {
     const rawRouters = await Router.find().lean();
 
     // find router for this user
-    let router = rawRouters.find(r =>
-      (r.userName || "").toLowerCase() === (user.username || "").toLowerCase()
+    let router = rawRouters.find(
+      (r) =>
+        (r.userName || "").toLowerCase() ===
+        (user.username || "").toLowerCase()
     );
 
-    // fallback so frontend NEVER breaks with 404
+    // fallback so frontend NEVER breaks
     if (!router && rawRouters.length > 0) router = rawRouters[0];
 
+    // ⭐ NEW: include permissions + username in response
     const safeUser = {
       id: user._id,
       username: user.username,
       email: user.email,
-      settings: user.settings || { theme: "system" }
+      settings: user.settings || { theme: "system" },
+
+      // ⭐ ADDED — permissions sent to frontend
+      permissions: {
+        canMonitor: user.permissions?.canMonitor ?? false,
+        canConfigure: user.permissions?.canConfigure ?? false
+      },
+
     };
 
     return res.json({
       status: true,
       user: safeUser,
-      router: router ? normalizeRouter(router) : null
+      router: router ? normalizeRouter(router) : null,
     });
   } catch (err) {
     console.error("/api/me error:", err);
     return res.status(500).json({ status: false, message: "internal error" });
   }
 });
+
+// ----------------- USER THEME SETTINGS -----------------
 app.get("/api/user/settings", requireAuth, async (req, res) => {
   try {
     const user = req.user;
     res.json({
       status: true,
-      settings: user.settings || { theme: "system" }
+      settings: user.settings || { theme: "system" },
     });
   } catch (err) {
     console.error("GET /api/user/settings error:", err);
@@ -185,12 +230,13 @@ app.get("/api/user/settings", requireAuth, async (req, res) => {
 const adminRoutes = require("./routes/admin");
 app.use("/api/admin", requireAuth, adminRoutes);
 
-
 app.post("/api/user/settings", requireAuth, async (req, res) => {
   try {
     const { theme } = req.body || {};
     if (!["system", "light", "dark"].includes(theme))
-      return res.status(400).json({ status: false, message: "Invalid theme" });
+      return res
+        .status(400)
+        .json({ status: false, message: "Invalid theme" });
 
     req.user.settings.theme = theme;
     await req.user.save();
@@ -201,7 +247,7 @@ app.post("/api/user/settings", requireAuth, async (req, res) => {
   }
 });
 
-// ----------------- NORMALIZE ROUTER DATA -----------------
+// ----------------- NORMALIZE ROUTER -----------------
 function normalizeRouter(raw) {
   if (!raw) return null;
 

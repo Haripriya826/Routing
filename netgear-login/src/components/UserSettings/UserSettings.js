@@ -36,6 +36,22 @@ export default function UserSettings() {
   const [loading, setLoading] = useState(false);
 
   // ---------------------------------------------
+// PASSWORD VALIDATION (ADD THIS)
+// ---------------------------------------------
+function validatePassword(password) {
+  const regex =
+    /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
+
+  if (!password) {
+    return "Password is required.";
+  }
+  if (!regex.test(password)) {
+    return "Password must be 8–32 characters and include 1 uppercase, 1 number, and 1 special character.";
+  }
+  return null;
+}
+
+  // ---------------------------------------------
   // LOAD USERS (stable callback to satisfy hooks lint)
   // ---------------------------------------------
   const loadUsers = useCallback(async () => {
@@ -96,8 +112,17 @@ export default function UserSettings() {
   }
 
   async function handleCreateUser(e) {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setError(null);
+
+  const pwdError = validatePassword(newPassword);
+  if (pwdError) {
+    setError(pwdError);
+    return;
+  }
+
+  setLoading(true);
+
 
     try {
       const token = localStorage.getItem("authToken");
@@ -181,10 +206,21 @@ export default function UserSettings() {
   // SAVE EDIT (used by both view-submission and edit mode)
   // ---------------------------------------------
   async function saveEditedUser(e) {
-    e.preventDefault();
-    if (!editUser) return;
+  e.preventDefault();
+  if (!editUser) return;
 
-    setLoading(true);
+  setError(null);
+
+  if (pwdRadio === "yes") {
+    const pwdError = validatePassword(editPassword);
+    if (pwdError) {
+      setError(pwdError);
+      return;
+    }
+  }
+
+  setLoading(true);
+
     try {
       const token = localStorage.getItem("authToken");
 
@@ -254,10 +290,12 @@ export default function UserSettings() {
   // Modal close helper (reset openedViaView)
   // ---------------------------------------------
   function closeModal() {
-    setShowModal(false);
-    setOpenedViaView(false);
-    setPwdRadio("no");
-  }
+  setShowModal(false);
+  setOpenedViaView(false);
+  setPwdRadio("no");
+  setError(null);
+}
+
 
   // ========================================================
   // UI
@@ -272,7 +310,7 @@ export default function UserSettings() {
         </button>
       )}
 
-      {error && <div className="error">{error}</div>}
+      
 
       <div className="table-scroll">
         <table className="user-table">
@@ -372,6 +410,8 @@ export default function UserSettings() {
             {/* VIEW MODE (now editable, with single Submit) */}
             {modalMode === "view" && (
               <form onSubmit={saveEditedUser} className="modal-body">
+                {error && <div className="error">{error}</div>}
+
                 <label>Username</label>
                 <input
                   className="input"
@@ -453,6 +493,8 @@ export default function UserSettings() {
             {/* CREATE MODE */}
             {modalMode === "create" && (
               <form onSubmit={handleCreateUser} className="modal-body">
+                {error && <div className="error">{error}</div>}
+
                 <label>Username</label>
                 <input className="input" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
 
@@ -483,6 +525,8 @@ export default function UserSettings() {
             {/* EDIT MODE (kept for compatibility if you use it elsewhere) */}
             {modalMode === "edit" && (
               <form onSubmit={saveEditedUser} className="modal-body">
+                {error && <div className="error">{error}</div>}
+
                 <label>Username</label>
                 <input className="input" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
 

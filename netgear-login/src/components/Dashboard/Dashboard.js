@@ -2,10 +2,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./Dashboard.css";
 import { useNavigate } from "react-router-dom";
+
 import AttachedDevices from "../AttachedDevices/AttachedDevices";
 import SystemSettings from "../SystemSettings/SystemSettings";
-
-// <-- use the same relative import pattern as your other components -->
 import UserSettings from "../UserSettings/UserSettings";
 
 // Helper to safely parse WAN values like "50%", "0 Mbps", "0", numeric, or null
@@ -20,16 +19,25 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const menuRef = useRef(null);
 
-  // Sidebar: 'dashboard' | 'monitoring' | 'configuration'
-  const [sidebarSelection, setSidebarSelection] = useState("dashboard");
-
-  // Configuration subpage: 'system' | 'user'
-  const [configSelection, setConfigSelection] = useState("system");
-
-  // Whether the Configuration parent is expanded to show subitems
+  // -------------------------
+  // UI state
+  // -------------------------
+  const [sidebarSelection, setSidebarSelection] = useState("dashboard"); // 'dashboard' | 'monitoring' | 'configuration'
+  const [configSelection, setConfigSelection] = useState("system"); // 'system' | 'user'
   const [configExpanded, setConfigExpanded] = useState(false);
 
-  // Theme setting: 'system' | 'light' | 'dark'
+  // -------------------------
+  // Permissions (from backend)
+  // -------------------------
+  const [permissions, setPermissions] = useState({
+    canMonitor: true,
+    canConfigure: false,
+  });
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // -------------------------
+  // Theme controls
+  // -------------------------
   const [themeSetting, setThemeSetting] = useState(() => {
     try {
       const ts = localStorage.getItem("themeSetting");
@@ -72,7 +80,6 @@ export default function Dashboard() {
         localStorage.setItem("theme", prefersDark ? "dark" : "light");
       }
     } catch {}
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [themeSetting]);
 
   useEffect(() => {
@@ -137,9 +144,10 @@ export default function Dashboard() {
     setThemeSetting(newSetting);
   };
 
+  // -------------------------
+  // Menu / fetch state
+  // -------------------------
   const [showMenu, setShowMenu] = useState(false);
-
-  // other app state
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [routerData, setRouterData] = useState(null);
@@ -152,21 +160,50 @@ export default function Dashboard() {
   const username = (typeof window !== "undefined" && localStorage.getItem("username")) || "Admin";
   const year = new Date().getFullYear();
 
-  useEffect(() => {
-    function onDocClick(e) {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
-    }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, []);
-
+  // Default VLAN options fallback
   const DEFAULT_VLAN_TYPES = [
     { id: 1, name: "Access (IPv4)", protocol: "ipv4" },
     { id: 2, name: "Trunk (IPv6)", protocol: "ipv6" },
     { id: 3, name: "Hybrid (Both)", protocol: "both" }
   ];
 
-  // Fetch /api/me and normalize response to router object
+  // -------------------------
+  // Guard navigation coherently (useEffect, not direct set during render)
+  // -------------------------
+  useEffect(() => {
+    // If user tries to be on monitoring but lacks permission, force to dashboard
+    if (sidebarSelection === "monitoring" && !permissions.canMonitor && !isAdmin) {
+      setSidebarSelection("dashboard");
+    }
+
+    // If user tries to open configuration but lacks both configure and admin
+    if (sidebarSelection === "configuration" && !permissions.canConfigure && !isAdmin) {
+      setSidebarSelection("dashboard");
+    }
+
+    // If configSelection is user but not admin, fall back to system (if allowed)
+    if (sidebarSelection === "configuration" && configSelection === "user" && !isAdmin) {
+      // prefer 'system' if user has configure; otherwise go to dashboard
+      if (permissions.canConfigure) setConfigSelection("system");
+      else setSidebarSelection("dashboard");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sidebarSelection, permissions, isAdmin, configSelection]);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    function onDocClick(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setShowMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  // -------------------------
+  // Fetch /api/me
+  // -------------------------
   useEffect(() => {
     let aborted = false;
 
@@ -198,14 +235,32 @@ export default function Dashboard() {
         }
 
         const data = await res.json();
+        try {
+          const serverTheme = data?.user?.settings?.theme;
+
+          if (serverTheme && ["system", "light", "dark"].includes(serverTheme)) {
+            setThemeSetting(serverTheme);
+          }
+        } catch (e) {
+          console.warn("Could not read server theme:", e);
+        }
+
 
         const router = data?.router ?? data?.user ?? data;
         const normalized = normalizeRouterClient(router);
 
         if (!aborted) {
           setRouterData(normalized);
+          if (data?.user?.settings?.theme) {
+              setThemeSetting(data.user.settings.theme);
+          }
 
-          // Initialize vlan types and selected id
+          // Apply permissions from backend (safely)
+          const u = data.user || {};
+          setPermissions(u.permissions || { canMonitor: true, canConfigure: false });
+          setIsAdmin((u.username || "").toLowerCase() === "admin");
+
+          // VLAN types
           const typesFromJson = Array.isArray(normalized?.vlanStatus?.types) && normalized.vlanStatus.types.length > 0
             ? normalized.vlanStatus.types
             : DEFAULT_VLAN_TYPES;
@@ -250,7 +305,9 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Logout — note: we intentionally keep themeSetting/theme in localStorage
+  // -------------------------
+  // Logout
+  // -------------------------
   const handleLogout = async () => {
     try {
       const token = (localStorage.getItem("authToken") || localStorage.getItem("token")) || null;
@@ -263,7 +320,6 @@ export default function Dashboard() {
     } catch (err) {
       console.error("efile remove error:", err);
     } finally {
-      // RESET auth but preserve theme preference
       try {
         const root = document.documentElement;
         root.removeAttribute("data-theme");
@@ -281,14 +337,15 @@ export default function Dashboard() {
     }
   };
 
-  // Safe accessor
+  // -------------------------
+  // Helpers / render helpers
+  // -------------------------
   const val = (v) => {
     if (v === undefined || v === null) return "—";
     if (typeof v === "boolean") return v ? "Yes" : "No";
     return String(v);
   };
 
-  // Client-side normalization
   function normalizeRouterClient(raw) {
     if (!raw || typeof raw !== "object") return raw || null;
 
@@ -499,30 +556,49 @@ export default function Dashboard() {
   }
 
   function selectMonitoring() {
-    setSidebarSelection("monitoring");
-    setConfigExpanded(false);
+    // Monitoring visible if canMonitor OR admin
+    if (permissions.canMonitor || isAdmin) {
+      setSidebarSelection("monitoring");
+      setConfigExpanded(false);
+    }
   }
 
   // IMPORTANT: clicking the parent only toggles expansion now — it DOES NOT navigate.
   function toggleConfiguration() {
+    // configuration parent visible if canConfigure OR admin
+    if (!permissions.canConfigure && !isAdmin) return;
     setConfigExpanded((s) => !s);
   }
 
   // click a subitem -> open configuration page for that subitem
   function selectConfigSub(sub) {
-    setSidebarSelection("configuration");
-    setConfigExpanded(true);
-    setConfigSelection(sub);
+    if (sub === "system") {
+      // System Settings visible for canConfigure OR admin (Option A: admin sees system)
+      if (permissions.canConfigure || isAdmin) {
+        setSidebarSelection("configuration");
+        setConfigExpanded(true);
+        setConfigSelection("system");
+      }
+    } else if (sub === "user") {
+      // User Settings visible only for admin
+      if (isAdmin) {
+        setSidebarSelection("configuration");
+        setConfigExpanded(true);
+        setConfigSelection("user");
+      }
+    }
   }
 
   // --- RENDER ---
   const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
 
-  // Monitoring full-width
+  // -------------------------
+  // MONITORING VIEW
+  // -------------------------
   if (sidebarSelection === "monitoring") {
     return (
       <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
-        {/* header omitted for brevity — same as previous */}
+        {/* HEADER */}
         <header className="dash-header">
           <div className="header-left"><div className="brand">NETGEAR</div></div>
           <div className="header-desc">
@@ -558,23 +634,31 @@ export default function Dashboard() {
                 <span>🏠</span> <span>Dashboard</span>
               </li>
 
-              <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
-                <span>📊</span> <span>Monitoring</span>
-              </li>
+              {(permissions.canMonitor || isAdmin) && (
+                <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
+                  <span>📊</span> <span>Monitoring</span>
+                </li>
+              )}
 
-              <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
-                <span>⚙️</span> <span>Configuration</span>
-              </li>
+              {(permissions.canConfigure || isAdmin) && (
+                <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
+                  <span>⚙️</span> <span>Configuration</span>
+                </li>
+              )}
 
-              {configExpanded && (
+              {configExpanded && (permissions.canConfigure || isAdmin) && (
                 <li className="sidebar-sublist" aria-label="Configuration subitems">
-                  <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
-                    <span>🛠️</span>System Settings
-                  </div>
+                  {(permissions.canConfigure || isAdmin) && (
+                    <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
+                      <span>🛠️</span>System Settings
+                    </div>
+                  )}
 
-                  <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
-                    <span>👤</span>User Settings
-                  </div>
+                  {isAdmin && (
+                    <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
+                      <span>👤</span>User Settings
+                    </div>
+                  )}
                 </li>
               )}
             </ul>
@@ -590,13 +674,14 @@ export default function Dashboard() {
     );
   }
 
-  // Configuration page (only when a subitem was clicked)
+  // -------------------------
+  // CONFIGURATION VIEW
+  // -------------------------
   if (sidebarSelection === "configuration") {
     const showSystem = configSelection === "system";
     const showUser = configSelection === "user";
     return (
       <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
-        {/* header same as above */}
         <header className="dash-header">
           <div className="header-left"><div className="brand">NETGEAR</div></div>
           <div className="header-desc">
@@ -632,23 +717,31 @@ export default function Dashboard() {
                 <span>🏠</span> <span>Dashboard</span>
               </li>
 
-              <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
-                <span>📊</span> <span>Monitoring</span>
-              </li>
+              {(permissions.canMonitor || isAdmin) && (
+                <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
+                  <span>📊</span> <span>Monitoring</span>
+                </li>
+              )}
 
-              <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
-                <span>⚙️</span> <span>Configuration</span>
-              </li>
+              {(permissions.canConfigure || isAdmin) && (
+                <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} aria-expanded={configExpanded}>
+                  <span>⚙️</span> <span>Configuration</span>
+                </li>
+              )}
 
-              {configExpanded && (
+              {configExpanded && (permissions.canConfigure || isAdmin) && (
                 <li className="sidebar-sublist" aria-label="Configuration subitems">
-                  <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
-                    <span>🛠️</span>System Settings
-                  </div>
+                  {(permissions.canConfigure || isAdmin) && (
+                    <div className={`subitem ${showSystem ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")}>
+                      <span>🛠️</span>System Settings
+                    </div>
+                  )}
 
-                  <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
-                    <span>👤</span>User Settings
-                  </div>
+                  {isAdmin && (
+                    <div className={`subitem ${showUser ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")}>
+                      <span>👤</span>User Settings
+                    </div>
+                  )}
                 </li>
               )}
             </ul>
@@ -659,12 +752,12 @@ export default function Dashboard() {
               <div>Loading configuration…</div>
             ) : fetchError ? (
               <div style={{ color: "crimson" }}>{fetchError}</div>
-            ) : showSystem ? (
-              <SystemSettings />
-            ) : showUser ? (
+            ) : showSystem && (permissions.canConfigure || isAdmin) ? (
+              <SystemSettings onThemeChange={(t) => setThemeSetting(t)} />
+            ) : showUser && isAdmin ? (
               <UserSettings />
             ) : (
-              <div style={{ padding: 20 }}>Select a configuration page.</div>
+              <div style={{ padding: 20 }}>Select a configuration page or you do not have access.</div>
             )}
           </main>
         </div>
@@ -674,10 +767,12 @@ export default function Dashboard() {
     );
   }
 
-  // Default dashboard layout
+  // -------------------------
+  // DEFAULT DASHBOARD VIEW
+  // -------------------------
   return (
     <div className={`dash-root ${darkMode ? "theme-dark" : ""}`}>
-      {/* header and main content exactly as previous implementation */}
+      {/* header */}
       <header className="dash-header">
         <div className="header-left"><div className="brand">NETGEAR</div></div>
         <div className="header-desc">
@@ -713,29 +808,37 @@ export default function Dashboard() {
               <span>🏠</span> <span>Dashboard</span>
             </li>
 
-            <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
-              <span>📊</span> <span>Monitoring</span>
-            </li>
+            {(permissions.canMonitor || isAdmin) && (
+              <li className={sidebarSelection === "monitoring" ? "active" : ""} onClick={selectMonitoring} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectMonitoring(); }}>
+                <span>📊</span> <span>Monitoring</span>
+              </li>
+            )}
 
-            <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") toggleConfiguration(); }} aria-expanded={configExpanded}>
-              <span>⚙️</span> <span>Configuration</span>
-            </li>
+            {(permissions.canConfigure || isAdmin) && (
+              <li className={`parent ${configExpanded ? "expanded" : ""}`} onClick={toggleConfiguration} role="button" tabIndex={0} aria-expanded={configExpanded}>
+                <span>⚙️</span> <span>Configuration</span>
+              </li>
+            )}
 
-            {configExpanded && (
+            {configExpanded && (permissions.canConfigure || isAdmin) && (
               <li className="sidebar-sublist" aria-label="Configuration subitems">
-                <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("system"); }}>
-                  <span>🛠️</span>  System Settings
-                </div>
+                {(permissions.canConfigure || isAdmin) && (
+                  <div className={`subitem ${configSelection === "system" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("system")}>
+                    <span>🛠️</span>  System Settings
+                  </div>
+                )}
 
-                <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") selectConfigSub("user"); }}>
-                  <span>👤</span>User Settings
-                </div>
+                {isAdmin && (
+                  <div className={`subitem ${configSelection === "user" ? "active" : ""}`} role="button" tabIndex={0} onClick={() => selectConfigSub("user")}>
+                    <span>👤</span>User Settings
+                  </div>
+                )}
               </li>
             )}
           </ul>
         </aside>
 
-        {/* main columns (connectivity / system info / right-col) left unchanged from your original file */}
+        {/* main columns (connectivity / system info / right-col) */}
         <main className="col-connectivity">
           <section className="card connectivity-card">
             <div className="card-title">Connectivity</div>
