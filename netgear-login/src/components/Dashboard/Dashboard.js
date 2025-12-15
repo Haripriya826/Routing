@@ -67,20 +67,52 @@ export default function Dashboard() {
   const [darkMode, setDarkMode] = useState(() => computeEffectiveDark(themeSetting));
 
   useEffect(() => {
-    applyTheme(themeSetting);
+  function applyTheme(setting) {
     try {
-      localStorage.setItem("themeSetting", themeSetting);
-      if (themeSetting === "dark") localStorage.setItem("theme", "dark");
-      else if (themeSetting === "light") localStorage.setItem("theme", "light");
-      else {
+      const root = document.documentElement;
+      const body = document.body;
+
+      if (setting === "dark") {
+        root.setAttribute("data-theme", "dark");
+        root.classList.add("theme-dark");
+        if (body) body.classList.add("theme-dark");
+        setDarkMode(true);
+      } else if (setting === "light") {
+        root.setAttribute("data-theme", "light");
+        root.classList.remove("theme-dark");
+        if (body) body.classList.remove("theme-dark");
+        setDarkMode(false);
+      } else {
+        root.removeAttribute("data-theme");
         const prefersDark =
           typeof window !== "undefined" &&
           window.matchMedia &&
           window.matchMedia("(prefers-color-scheme: dark)").matches;
-        localStorage.setItem("theme", prefersDark ? "dark" : "light");
+        root.classList.toggle("theme-dark", prefersDark);
+        if (body) body.classList.toggle("theme-dark", prefersDark);
+        setDarkMode(prefersDark);
       }
-    } catch {}
-  }, [themeSetting]);
+    } catch (err) {
+      console.error("applyTheme error", err);
+    }
+  }
+
+  applyTheme(themeSetting);
+
+  try {
+    localStorage.setItem("themeSetting", themeSetting);
+    if (themeSetting === "dark") localStorage.setItem("theme", "dark");
+    else if (themeSetting === "light") localStorage.setItem("theme", "light");
+    else {
+      const prefersDark =
+        typeof window !== "undefined" &&
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      localStorage.setItem("theme", prefersDark ? "dark" : "light");
+    }
+  } catch {}
+}, [themeSetting]);
+
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.matchMedia) return;
@@ -112,31 +144,7 @@ export default function Dashboard() {
     };
   }, [themeSetting]);
 
-  function applyTheme(setting) {
-    try {
-      const root = document.documentElement;
-      const body = document.body;
-      if (setting === "dark") {
-        root.setAttribute("data-theme", "dark");
-        root.classList.add("theme-dark");
-        if (body) body.classList.add("theme-dark");
-        setDarkMode(true);
-      } else if (setting === "light") {
-        root.setAttribute("data-theme", "light");
-        root.classList.remove("theme-dark");
-        if (body) body.classList.remove("theme-dark");
-        setDarkMode(false);
-      } else {
-        root.removeAttribute("data-theme");
-        const eff = computeEffectiveDark("system");
-        root.classList.toggle("theme-dark", eff);
-        if (body) body.classList.toggle("theme-dark", eff);
-        setDarkMode(eff);
-      }
-    } catch (err) {
-      console.error("applyTheme error", err);
-    }
-  }
+  
 
   const toggleHeaderTheme = () => {
     const currentlyDark = computeEffectiveDark(themeSetting);
@@ -301,7 +309,15 @@ export default function Dashboard() {
     }
 
     fetchMe();
-    return () => { aborted = true; };
+      const interval = setInterval(() => {
+    fetchMe();
+  }, 5000);
+
+  return () => {
+    aborted = true;
+    clearInterval(interval); // 🟢 ADD THIS
+  };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

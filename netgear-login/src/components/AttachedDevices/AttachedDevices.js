@@ -1,5 +1,5 @@
 // src/AttachedDevices.js
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import "./AttachedDevices.css";
 
 const PAGE_SIZE = 10;
@@ -9,45 +9,49 @@ export default function AttachedDevices() {
   const [page, setPage] = useState(1);
   const [devices, setDevices] = useState([]);
 
+  const intervalRef = useRef(null);
+
   // -----------------------------
-  // LOAD DEVICES FROM SERVER
+  // FETCH DEVICES (SHARED)
   // -----------------------------
-  useEffect(() => {
-    async function fetchDevices() {
-  try {
-    const token = localStorage.getItem("authToken");
+  const fetchDevices = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
 
-    if (!token) {
-      console.error("Token missing");
-      return;
+      const res = await fetch("http://localhost:5000/api/devices", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const json = await res.json();
+      if (!json.status) return;
+
+      setDevices(json.devices || []);
+    } catch (err) {
+      console.error("Error loading devices:", err);
     }
-
-    const res = await fetch("http://localhost:5000/api/devices", {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const json = await res.json();
-
-    if (!json.status) {
-      console.error("Backend error:", json.message);
-      return;
-    }
-
-    setDevices(json.devices || []);
-  } catch (err) {
-    console.error("Error loading devices:", err);
-  }
-}
-
-
-    fetchDevices();
   }, []);
 
   // -----------------------------
-  // FILTER LOGIC
+  // AUTO REFRESH
+  // -----------------------------
+  useEffect(() => {
+    // first load
+    fetchDevices();
+
+    // start auto refresh
+    intervalRef.current = setInterval(fetchDevices, 5000);
+
+    return () => {
+      clearInterval(intervalRef.current);
+    };
+  }, [fetchDevices]);
+
+  // -----------------------------
+  // FILTER
   // -----------------------------
   const filtered = useMemo(() => {
     const q = (query || "").trim().toLowerCase();
@@ -103,10 +107,8 @@ export default function AttachedDevices() {
             Go
           </button>
 
-          <button
-            className="btn refresh"
-            onClick={() => window.location.reload()}
-          >
+          {/* ✅ MANUAL REFRESH */}
+          <button className="btn refresh" onClick={fetchDevices}>
             Refresh
           </button>
         </div>
@@ -135,7 +137,7 @@ export default function AttachedDevices() {
               </tr>
             ) : (
               pageItems.map((d) => (
-                <tr key={d.id}>
+                <tr key={d.id || d._id}>
                   <td>{d.deviceName}</td>
                   <td>{d.ipAddress}</td>
                   <td>{d.ipv6Address || "---"}</td>
