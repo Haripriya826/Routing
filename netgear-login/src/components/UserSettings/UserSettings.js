@@ -35,21 +35,43 @@ export default function UserSettings() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // ---------------------------------------------
+  
 // PASSWORD VALIDATION (ADD THIS)
-// ---------------------------------------------
-function validatePassword(password) {
-  const regex =
-    /^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$/;
 
+function validatePassword(password) {
   if (!password) {
     return "Password is required.";
   }
-  if (!regex.test(password)) {
+
+  let hasUppercase = false;
+  let hasNumber = false;
+  let hasSpecialChar = false;
+
+  const specialChars = "@$!%*?&";
+
+  for (let char of password) {
+    if (char >= "A" && char <= "Z") {
+      hasUppercase = true;
+    } else if (char >= "0" && char <= "9") {
+      hasNumber = true;
+    } else if (specialChars.includes(char)) {
+      hasSpecialChar = true;
+    }
+  }
+
+  if (
+    password.length < 8 ||
+    password.length > 32 ||
+    !hasUppercase ||
+    !hasNumber ||
+    !hasSpecialChar
+  ) {
     return "Password must be 8–32 characters and include 1 uppercase, 1 number, and 1 special character.";
   }
-  return null;
+
+  return null; 
 }
+
 
   // ---------------------------------------------
   // LOAD USERS (stable callback to satisfy hooks lint)
@@ -264,9 +286,9 @@ function validatePassword(password) {
     }
   }
 
-  // ---------------------------------------------
+  
   // DELETE USER
-  // ---------------------------------------------
+  
   async function deleteUser(id) {
     const u = users.find((x) => x._id === id);
     if (u?.username === "admin") {
