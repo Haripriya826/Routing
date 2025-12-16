@@ -25,7 +25,8 @@ export default function Dashboard() {
   const [sidebarSelection, setSidebarSelection] = useState("dashboard"); // 'dashboard' | 'monitoring' | 'configuration'
   const [configSelection, setConfigSelection] = useState("system"); // 'system' | 'user'
   const [configExpanded, setConfigExpanded] = useState(false);
-
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  
   // -------------------------
   // Permissions (from backend)
   // -------------------------
@@ -212,6 +213,47 @@ export default function Dashboard() {
   // -------------------------
   // Fetch /api/me
   // -------------------------
+
+  // -------------------------
+// Fetch helper
+// -------------------------
+const fetchMe = async () => {
+  setLoading(true);
+  setFetchError(null);
+
+  try {
+    const token =
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token");
+
+    if (!token) return;
+
+    const res = await fetch("http://localhost:5000/api/me", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!res.ok) throw new Error("Fetch failed");
+
+    const data = await res.json();
+
+    const router = data?.router ?? data?.user ?? data;
+    const normalized = normalizeRouterClient(router);
+
+    setRouterData(normalized);
+
+    const u = data.user || {};
+    setPermissions(u.permissions || { canMonitor: true, canConfigure: false });
+    setIsAdmin((u.username || "").toLowerCase() === "admin");
+  } catch (err) {
+    setFetchError(err.message || "Fetch failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
   useEffect(() => {
     let aborted = false;
 
@@ -309,17 +351,26 @@ export default function Dashboard() {
     }
 
     fetchMe();
-      const interval = setInterval(() => {
-    fetchMe();
-  }, 5000);
 
-  return () => {
-    aborted = true;
-    clearInterval(interval); // 🟢 ADD THIS
-  };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto refresh ONLY when enabled
+useEffect(() => {
+  // 🚫 Stop if auto-refresh OFF
+  if (!autoRefresh) return;
+
+  // 🚫 Stop if NOT on dashboard view
+  if (sidebarSelection !== "dashboard") return;
+
+  const interval = setInterval(() => {
+    fetchMe(); // ✅ dashboard API only
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [autoRefresh, sidebarSelection]);
+
 
   // -------------------------
   // Logout
@@ -622,6 +673,22 @@ export default function Dashboard() {
             <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
           </div>
           <div className="header-right">
+            <button
+            className={`refresh-toggle ${autoRefresh ? "on" : "off"}`}
+            onClick={() => setAutoRefresh((s) => !s)}
+            role="switch"
+            aria-checked={autoRefresh}
+            title={autoRefresh ? "Auto refresh ON (5s)" : "Auto refresh OFF"}
+          >
+            <span className="toggle-track">
+              <span className="toggle-thumb">
+                🔄
+              </span>
+            </span>
+          </button>
+
+
+
             <button onClick={toggleHeaderTheme} className="icon-btn" title={darkMode ? "Switch to light" : "Switch to dark"} aria-pressed={darkMode}>
               <img className="hdr-icon" alt={darkMode ? "light" : "dark"} src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"} />
             </button>
@@ -705,6 +772,22 @@ export default function Dashboard() {
             <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
           </div>
           <div className="header-right">
+            <button
+              className={`refresh-toggle ${autoRefresh ? "on" : "off"}`}
+              onClick={() => setAutoRefresh((s) => !s)}
+              role="switch"
+              aria-checked={autoRefresh}
+              title={autoRefresh ? "Auto refresh ON (5s)" : "Auto refresh OFF"}
+            >
+              <span className="toggle-track">
+                <span className="toggle-thumb">
+                  🔄
+                </span>
+              </span>
+            </button>
+
+
+
             <button onClick={toggleHeaderTheme} className="icon-btn" title={darkMode ? "Switch to light" : "Switch to dark"} aria-pressed={darkMode}>
               <img className="hdr-icon" alt={darkMode ? "light" : "dark"} src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"} />
             </button>
@@ -796,6 +879,21 @@ export default function Dashboard() {
           <div className="header-sub">Multi-Gigabit Dual WAN Pro Router</div>
         </div>
         <div className="header-right">
+              <button
+                className={`refresh-toggle ${autoRefresh ? "on" : "off"}`}
+                onClick={() => setAutoRefresh((s) => !s)}
+                role="switch"
+                aria-checked={autoRefresh}
+                title={autoRefresh ? "Auto refresh ON (5s)" : "Auto refresh OFF"}
+              >
+                <span className="toggle-track">
+                  <span className="toggle-thumb">
+                    🔄
+                  </span>
+                </span>
+              </button>
+
+
           <button onClick={toggleHeaderTheme} className="icon-btn" title={darkMode ? "Switch to light" : "Switch to dark"} aria-pressed={darkMode}>
             <img className="hdr-icon" alt={darkMode ? "light" : "dark"} src={darkMode ? "https://cdn-icons-png.flaticon.com/512/869/869869.png" : "https://cdn-icons-png.flaticon.com/512/869/869869.png"} />
           </button>
@@ -983,4 +1081,4 @@ export default function Dashboard() {
       <footer className="footer">© {year} Netgear | All Rights Reserved</footer>
     </div>
   );
-}
+} 
