@@ -1,7 +1,7 @@
 // src/components/Dashboard/Dashboard.js
 import React, { useEffect, useRef, useState } from "react";
 import "./Dashboard.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate ,  useLocation } from "react-router-dom";
 
 import AttachedDevices from "../AttachedDevices/AttachedDevices";
 import SystemSettings from "../SystemSettings/SystemSettings";
@@ -35,6 +35,33 @@ export default function Dashboard() {
     canConfigure: false,
   });
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const location = useLocation();
+
+
+  useEffect(() => {
+  const path = location.pathname;
+
+  if (path === "/dashboard") {
+    setSidebarSelection("dashboard");
+  }
+
+  if (path === "/monitoring") {
+    setSidebarSelection("monitoring");
+  }
+
+  if (path === "/configuration/system") {
+    setSidebarSelection("configuration");
+    setConfigExpanded(true);
+    setConfigSelection("system");
+  }
+
+  if (path === "/configuration/users") {
+    setSidebarSelection("configuration");
+    setConfigExpanded(true);
+    setConfigSelection("user");
+  }
+}, [location.pathname]);
 
   // -------------------------
   // Theme controls
@@ -365,7 +392,7 @@ useEffect(() => {
   if (sidebarSelection !== "dashboard") return;
 
   const interval = setInterval(() => {
-    fetchMe(); // ✅ dashboard API only
+    fetchMe(); 
   }, 5000);
 
   return () => clearInterval(interval);
@@ -618,17 +645,20 @@ useEffect(() => {
 
   // --- SIDEBAR ACTION HELPERS ---
   function selectDashboard() {
-    setSidebarSelection("dashboard");
-    setConfigExpanded(false);
-  }
+  setSidebarSelection("dashboard");
+  setConfigExpanded(false);
+  navigate("/dashboard", { replace: true });
+}
+
 
   function selectMonitoring() {
-    // Monitoring visible if canMonitor OR admin
-    if (permissions.canMonitor || isAdmin) {
-      setSidebarSelection("monitoring");
-      setConfigExpanded(false);
-    }
+  if (permissions.canMonitor || isAdmin) {
+    setSidebarSelection("monitoring");
+    setConfigExpanded(false);
+    navigate("/monitoring", { replace: true });
   }
+}
+
 
   // IMPORTANT: clicking the parent only toggles expansion now — it DOES NOT navigate.
   function toggleConfiguration() {
@@ -639,22 +669,18 @@ useEffect(() => {
 
   // click a subitem -> open configuration page for that subitem
   function selectConfigSub(sub) {
-    if (sub === "system") {
-      // System Settings visible for canConfigure OR admin (Option A: admin sees system)
-      if (permissions.canConfigure || isAdmin) {
-        setSidebarSelection("configuration");
-        setConfigExpanded(true);
-        setConfigSelection("system");
-      }
-    } else if (sub === "user") {
-      // User Settings visible only for admin
-      if (isAdmin) {
-        setSidebarSelection("configuration");
-        setConfigExpanded(true);
-        setConfigSelection("user");
-      }
-    }
+  setSidebarSelection("configuration");
+  setConfigExpanded(true);
+  setConfigSelection(sub);
+
+  if (sub === "system") {
+    navigate("/configuration/system", { replace: true });
   }
+
+  if (sub === "user") {
+    navigate("/configuration/users", { replace: true });
+  }
+}
 
   // --- RENDER ---
   const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
