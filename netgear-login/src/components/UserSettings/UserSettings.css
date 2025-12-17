@@ -321,13 +321,14 @@ label {
 .small-btn:hover { filter: brightness(1.1); }
 
 .delete-btn {
-  background: var(--danger);
+  background:red;
   color: var(--accent-contrast);
   padding: 6px 10px;
   border-radius: 6px;
   cursor: pointer;
   border: none;
   font-size: 14px;
+ 
 }
 .delete-btn:hover { filter: brightness(0.95); }
 
@@ -573,4 +574,24 @@ label {
   border-radius: 6px;
   margin-bottom: 10px;
   font-size: 14px;
+}
+/* =========================
+   DELETE CONFIRM BUTTON
+   ========================= */
+
+.btn.danger {
+  background: var(--danger) !important;
+  color: #ffffff !important;
+  border: none;
+}
+
+.btn.danger:hover {
+  filter: brightness(0.9);
+}
+
+.btn.danger:active {
+  transform: translateY(1px);
+}
+.theme-dark .btn.danger {
+  background: #ff5f5f !important;
 }

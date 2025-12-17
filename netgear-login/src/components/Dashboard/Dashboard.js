@@ -15,10 +15,15 @@ function parseWAN(val) {
   return Number.isFinite(f) ? f : 0;
 }
 
-const handleReboot = async () => {
-  const ok = window.confirm("Do you want to reboot?");
 
-  if (!ok) return;
+
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const menuRef = useRef(null);
+
+  const handleReboot = async () => {
+  setRebooting(true);
 
   try {
     const token =
@@ -37,15 +42,13 @@ const handleReboot = async () => {
   } catch (err) {
     console.error("Reboot error:", err);
   } finally {
-    // 🔥 reload whole page once
+    setRebooting(false);
+    setShowRebootPopup(false);
+
+    // reload once after reboot request
     window.location.reload();
   }
 };
-
-
-export default function Dashboard() {
-  const navigate = useNavigate();
-  const menuRef = useRef(null);
 
   // -------------------------
   // UI state
@@ -54,6 +57,9 @@ export default function Dashboard() {
   const [configSelection, setConfigSelection] = useState("system"); // 'system' | 'user'
   const [configExpanded, setConfigExpanded] = useState(false);
   const { autoRefresh, setAutoRefresh } = useAutoRefreshContext();
+  const [showRebootPopup, setShowRebootPopup] = useState(false);
+  const [rebooting, setRebooting] = useState(false);
+
   // -------------------------
   // Permissions (from backend)
   // -------------------------
@@ -1060,7 +1066,10 @@ useEffect(() => {
             </div>
 
             <div className="card-footer">
-              <button className="btn" onClick={handleReboot}> Reboot</button>
+              <button className="btn" onClick={() => setShowRebootPopup(true)}>
+                Reboot
+              </button>
+
               <button className="btn muted" onClick={() => alert("Check for update (demo)")}>Check for Update</button>
             </div>
           </section>
@@ -1129,8 +1138,40 @@ useEffect(() => {
             </div>
           </section>
         </aside>
+        {showRebootPopup && (
+  <div className="popup-overlay">
+    <div className="popup-card" role="dialog" aria-modal="true">
+      <h3>Confirm Reboot</h3>
+      <p>
+        Are you sure you want to reboot the router?
+        <br />
+        Internet connectivity will be temporarily lost.
+      </p>
+
+      <div className="popup-actions">
+        <button
+          className="btn muted"
+          onClick={() => setShowRebootPopup(false)}
+          disabled={rebooting}
+        >
+          Cancel
+        </button>
+
+        <button
+          className="btn danger"
+          onClick={handleReboot}
+          disabled={rebooting}
+        >
+          {rebooting ? "Rebooting..." : "Reboot"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
 
+        
       <footer className="footer">© {year} Netgear | All Rights Reserved</footer>
     </div>
   );

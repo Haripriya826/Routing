@@ -13,6 +13,10 @@ export default function UserSettings() {
   const [openedViaView, setOpenedViaView] = useState(false); // track if opened via table View
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [limitMessage, setLimitMessage] = useState("");
+  // Delete confirmation modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
 
   // Create fields
   const [newUsername, setNewUsername] = useState("");
@@ -224,6 +228,28 @@ function validatePassword(password) {
     setPwdRadio("no");
   }
 
+  async function confirmDeleteUser() {
+  if (!userToDelete) return;
+
+  try {
+    const token = localStorage.getItem("authToken");
+
+    await fetch(
+      `http://localhost:5000/api/admin/delete-user/${userToDelete._id}`,
+      {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    setShowDeleteModal(false);
+    setUserToDelete(null);
+    await loadUsers();
+  } catch (err) {
+    setError("Failed to delete user");
+  }
+}
+
   // ---------------------------------------------
   // SAVE EDIT (used by both view-submission and edit mode)
   // ---------------------------------------------
@@ -289,24 +315,21 @@ function validatePassword(password) {
   
   // DELETE USER
   
-  async function deleteUser(id) {
-    const u = users.find((x) => x._id === id);
-    if (u?.username === "admin") {
-      alert("Cannot delete the admin user.");
-      return;
-    }
+  function deleteUser(id) {
+  const u = users.find((x) => x._id === id);
 
-    if (!window.confirm("Delete this user?")) return;
-
-    const token = localStorage.getItem("authToken");
-
-    await fetch(`http://localhost:5000/api/admin/delete-user/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    await loadUsers();
+  if (u?.username === "admin") {
+    setLimitMessage("Cannot delete the admin user.");
+    setShowLimitModal(true);
+    return;
   }
+
+  setUserToDelete(u);
+  setShowDeleteModal(true);
+}
+
+
+    
 
   // ---------------------------------------------
   // Modal close helper (reset openedViaView)
@@ -410,6 +433,45 @@ function validatePassword(password) {
           </tbody>
         </table>
       </div>
+
+        {showDeleteModal && (
+  <div className="modal-bg">
+    <div className="modal small-modal">
+      <div className="modal-header">
+        <h3>Confirm Delete</h3>
+        <button
+          className="close-btn"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          ✖
+        </button>
+      </div>
+
+      <div className="modal-body">
+        <p>
+          Are you sure you want to delete{" "}
+          <strong>{userToDelete?.username}</strong>?
+        </p>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button
+            className="btn muted"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            Cancel
+          </button>
+
+          <button
+            className="btn danger"
+            onClick={confirmDeleteUser}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* MODAL */}
       {showModal && (

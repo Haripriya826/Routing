@@ -4,11 +4,19 @@ import "./App.css";
 import leftImage1 from "../../assets/leftImage1.png";
 import { useNavigate } from "react-router-dom";
 
+const ADMIN_USERNAME = "admin";
+const MAX_ATTEMPTS = 5;
+const LOCK_TIME = 30; 
+
 export default function App() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const passwordRef = useRef(null);
+
+  const [locked, setLocked] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(0);
+
 
   const [errors, setErrors] = useState({ username: false, password: false });
   const [serverMsg, setServerMsg] = useState("");
@@ -18,12 +26,21 @@ export default function App() {
 
   const navigate = useNavigate();
 
-  // LOGIN FUNCTION — CLEAN & SIMPLE
+  const failKey = (user) => `fail_${user}`;
+  const lockKey = (user) => `lock_${user}`;
+
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setServerMsg("");
     setErrors({ username: false, password: false });
     setReloadAfterFail(false);
+
+    if (username === ADMIN_USERNAME && locked) {
+      setServerMsg(`Too many attempts. Try again in ${remainingTime}s`);
+      return;
+    }
+
 
     if (!username.trim() || !password) {
       setErrors({
@@ -42,20 +59,44 @@ export default function App() {
 
       const data = await res.json().catch(() => ({}));
 
-      // SUCCESS → go dashboard instantly
       if (res.ok && data.status === true) {
-        if (data.token) localStorage.setItem("authToken", data.token);
-        localStorage.setItem("username", username.trim());
+          if (username === ADMIN_USERNAME) {
+            localStorage.removeItem(failKey(username));
+            localStorage.removeItem(lockKey(username));
+          }
 
-        navigate("/dashboard"); // instant redirect
-        return;
-      }
+          if (data.token) localStorage.setItem("authToken", data.token);
+          localStorage.setItem("username", username.trim());
+
+          navigate("/dashboard");
+          return;
+        }
+
 
       // FAILURE
-      const message = data?.message || "Invalid credentials";
-      setServerMsg(message);
-      setErrors({ username: true, password: true });
-      setReloadAfterFail(true);
+const message = data?.message || "Invalid credentials";
+
+if (username === ADMIN_USERNAME) {
+  const currentFails = Number(localStorage.getItem(failKey(username)) || 0) + 1;
+  localStorage.setItem(failKey(username), currentFails);
+
+  
+  if (currentFails >= MAX_ATTEMPTS) {
+    const lockUntil = Date.now() + LOCK_TIME * 1000;
+    localStorage.setItem(lockKey(username), lockUntil);
+
+    setLocked(true);
+    setRemainingTime(LOCK_TIME);
+    setServerMsg(`Too many attempts. Try again in ${LOCK_TIME}s`);
+
+    return;
+  }
+}
+
+// normal error handling
+setServerMsg(message);
+setErrors({ username: true, password: true });
+setReloadAfterFail(true);
 
     } catch (err) {
       console.error("Network/login error:", err);
@@ -63,6 +104,56 @@ export default function App() {
       setReloadAfterFail(true);
     }
   };
+  useEffect(() => {
+  if (username !== ADMIN_USERNAME) return;
+
+  const lockUntil = localStorage.getItem(lockKey(username));
+  if (!lockUntil) return;
+
+  const secondsLeft = Math.floor((lockUntil - Date.now()) / 1000);
+
+  if (secondsLeft > 0) {
+    setLocked(true);
+    setRemainingTime(secondsLeft);
+  } else {
+    localStorage.removeItem(lockKey(username));
+    localStorage.removeItem(failKey(username));
+    setLocked(false);
+  }
+}, [username]);
+
+useEffect(() => {
+  if (!locked) return;
+
+  const timer = setInterval(() => {
+    setRemainingTime((time) => {
+      if (time <= 1) {
+        clearInterval(timer);
+
+        setLocked(false);
+        setServerMsg("");
+        setErrors({ username: false, password: false });
+
+        localStorage.removeItem(lockKey(ADMIN_USERNAME));
+        localStorage.removeItem(failKey(ADMIN_USERNAME));
+
+        return 0;
+      }
+
+      return time - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [locked]);
+
+useEffect(() => {
+  if (locked && remainingTime > 0) {
+    setServerMsg(`Too many attempts. Try again in ${remainingTime}s`);
+  }
+}, [remainingTime, locked]);
+
+
 
   // EFFECT → silent reload after 10s
   useEffect(() => {
@@ -77,14 +168,16 @@ export default function App() {
     setUsername(val);
     setReloadAfterFail(false);
     if (errors.username) setErrors((p) => ({ ...p, username: false }));
-    if (serverMsg) setServerMsg("");
+    if (!locked && serverMsg) setServerMsg("");
+
   };
 
   const onPasswordChange = (val) => {
     setPassword(val);
     setReloadAfterFail(false);
     if (errors.password) setErrors((p) => ({ ...p, password: false }));
-    if (serverMsg) setServerMsg("");
+    if (!locked && serverMsg) setServerMsg("");
+
   };
 
   return (
@@ -171,21 +264,25 @@ export default function App() {
             </button>
           </div>
 
-          {/* Submit */}
-          <button className="submit" type="submit">
+          <button className="submit" type="submit" disabled={locked}>
             Log In
           </button>
 
-          {/* Error message only */}
+
           {serverMsg && (
             <p
               className={`status-text ${
-                errors.username || errors.password ? "error-text" : ""
+                serverMsg.includes("Too many attempts")
+                  ? "lock-text"
+                  : errors.username || errors.password
+                  ? "error-text"
+                  : ""
               }`}
             >
               {serverMsg}
             </p>
           )}
+
         </form>
       </main>
     </div>

@@ -1489,3 +1489,68 @@ html, body, #root {
 .theme-dark .refresh-toggle.on .toggle-track {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
 }
+
+/* Overlay */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+/* Card */
+.popup-card {
+  background: var(--card-bg, #fff);
+  border-radius: 14px;
+  padding: 22px 24px;
+  width: 360px;
+  border: 1.5px solid  #9da5b4;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+  animation: popIn 0.25s ease;
+}
+
+.theme-dark .popup-card {
+  border: 1.5px solid  #9da5b4;
+}
+
+
+.popup-card h3 {
+  margin: 0 0 10px;
+}
+
+.popup-card p {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 18px;
+}
+
+/* Buttons */
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.btn.danger {
+  background:  #1f6feb;
+  color: #fff;
+}
+
+.btn.danger:hover {
+  background: #1f6feb;
+}
+
+/* Animation */
+@keyframes popIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
