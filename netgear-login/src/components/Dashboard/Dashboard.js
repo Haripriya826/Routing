@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "./Dashboard.css";
 import { useNavigate ,  useLocation } from "react-router-dom";
-
+import { useAutoRefreshContext } from "../../context/AutoRefreshContext";
 import AttachedDevices from "../AttachedDevices/AttachedDevices";
 import SystemSettings from "../SystemSettings/SystemSettings";
 import UserSettings from "../UserSettings/UserSettings";
@@ -15,6 +15,34 @@ function parseWAN(val) {
   return Number.isFinite(f) ? f : 0;
 }
 
+const handleReboot = async () => {
+  const ok = window.confirm("Do you want to reboot?");
+
+  if (!ok) return;
+
+  try {
+    const token =
+      localStorage.getItem("authToken") ||
+      localStorage.getItem("token");
+
+    if (token) {
+      await fetch("http://localhost:5000/api/router/reboot", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
+  } catch (err) {
+    console.error("Reboot error:", err);
+  } finally {
+    // 🔥 reload whole page once
+    window.location.reload();
+  }
+};
+
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const menuRef = useRef(null);
@@ -25,8 +53,7 @@ export default function Dashboard() {
   const [sidebarSelection, setSidebarSelection] = useState("dashboard"); // 'dashboard' | 'monitoring' | 'configuration'
   const [configSelection, setConfigSelection] = useState("system"); // 'system' | 'user'
   const [configExpanded, setConfigExpanded] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(false);
-  
+  const { autoRefresh, setAutoRefresh } = useAutoRefreshContext();
   // -------------------------
   // Permissions (from backend)
   // -------------------------
@@ -38,7 +65,9 @@ export default function Dashboard() {
 
   const location = useLocation();
 
+  const { refreshTick } = useAutoRefreshContext();
 
+ 
   useEffect(() => {
   const path = location.pathname;
 
@@ -238,13 +267,13 @@ export default function Dashboard() {
   }, []);
 
   // -------------------------
-  // Fetch /api/me
+  // Fetch /api/dash
   // -------------------------
 
   // -------------------------
 // Fetch helper
 // -------------------------
-const fetchMe = async () => {
+const fetchDash = async () => {
   setLoading(true);
   setFetchError(null);
 
@@ -255,7 +284,7 @@ const fetchMe = async () => {
 
     if (!token) return;
 
-    const res = await fetch("http://localhost:5000/api/me", {
+    const res = await fetch("http://localhost:5000/api/dash", {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -284,7 +313,7 @@ const fetchMe = async () => {
   useEffect(() => {
     let aborted = false;
 
-    async function fetchMe() {
+    async function fetchDash() {
       setLoading(true);
       setFetchError(null);
       try {
@@ -295,7 +324,7 @@ const fetchMe = async () => {
           return;
         }
 
-        const res = await fetch("http://localhost:5000/api/me", {
+        const res = await fetch("http://localhost:5000/api/dash", {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         });
 
@@ -364,7 +393,7 @@ const fetchMe = async () => {
           else setVlanActiveTab("ipv4");
         }
       } catch (err) {
-        console.error("fetch /api/me error:", err);
+        console.error("fetch /api/dash error:", err);
         if (!aborted) {
           if (err instanceof TypeError && /failed to fetch/i.test(err.message)) {
             setFetchError("Network error or CORS issue. Is the backend running?");
@@ -377,31 +406,29 @@ const fetchMe = async () => {
       }
     }
 
-    fetchMe();
+    fetchDash();
 
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
-  // Auto refresh ONLY when enabled
+  
 useEffect(() => {
-  // 🚫 Stop if auto-refresh OFF
+  
   if (!autoRefresh) return;
 
-  // 🚫 Stop if NOT on dashboard view
+  
   if (sidebarSelection !== "dashboard") return;
 
   const interval = setInterval(() => {
-    fetchMe(); 
+    fetchDash(); 
   }, 5000);
 
   return () => clearInterval(interval);
 }, [autoRefresh, sidebarSelection]);
 
 
-  // -------------------------
-  // Logout
-  // -------------------------
+ 
   const handleLogout = async () => {
     try {
       const token = (localStorage.getItem("authToken") || localStorage.getItem("token")) || null;
@@ -681,6 +708,7 @@ useEffect(() => {
     navigate("/configuration/users", { replace: true });
   }
 }
+
 
   // --- RENDER ---
   const wan1Up = parseWAN(routerData?.connectivity?.WAN1Load) > 0;
@@ -1033,7 +1061,7 @@ useEffect(() => {
             </div>
 
             <div className="card-footer">
-              <button className="btn" onClick={() => alert("Reboot (demo)")}>Reboot</button>
+              <button className="btn" onClick={handleReboot}> Reboot</button>
               <button className="btn muted" onClick={() => alert("Check for update (demo)")}>Check for Update</button>
             </div>
           </section>

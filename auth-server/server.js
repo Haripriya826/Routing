@@ -170,7 +170,7 @@ app.delete("/api/efile/remove", requireAuth, async (req, res) => {
 // ----------------- USER SETTINGS -----------------
 
 // ⭐ UPDATED /api/me — includes permissions + username for frontend navigation
-app.get("/api/me", requireAuth, async (req, res) => {
+app.get("/api/dash", requireAuth, async (req, res) => {
   try {
     const user = req.user;
 
@@ -208,7 +208,7 @@ app.get("/api/me", requireAuth, async (req, res) => {
       router: router ? normalizeRouter(router) : null,
     });
   } catch (err) {
-    console.error("/api/me error:", err);
+    console.error("/api/dash error:", err);
     return res.status(500).json({ status: false, message: "internal error" });
   }
 });

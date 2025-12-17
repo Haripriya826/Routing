@@ -1,70 +1,67 @@
 // src/AttachedDevices.js
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./AttachedDevices.css";
+import { useAutoRefreshContext } from "../../context/AutoRefreshContext";
 
 const PAGE_SIZE = 10;
 
 export default function AttachedDevices() {
+  const { refreshTick } = useAutoRefreshContext();
+
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [devices, setDevices] = useState([]);
 
   // -----------------------------
-  // LOAD DEVICES FROM SERVER
+  // FETCH DEVICES (REUSABLE)
+  // -----------------------------
+  const fetchDevices = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+
+      const res = await fetch("http://localhost:5000/api/devices", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const json = await res.json();
+      if (!json.status) return;
+
+      setDevices(json.devices || []);
+    } catch (err) {
+      console.error("Error loading devices:", err);
+    }
+  }, []);
+
+  // -----------------------------
+  // INITIAL LOAD
   // -----------------------------
   useEffect(() => {
-    async function fetchDevices() {
-  try {
-    const token = localStorage.getItem("authToken");
-
-    if (!token) {
-      console.error("Token missing");
-      return;
-    }
-
-    const res = await fetch("http://localhost:5000/api/devices", {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    const json = await res.json();
-
-    if (!json.status) {
-      console.error("Backend error:", json.message);
-      return;
-    }
-
-    setDevices(json.devices || []);
-  } catch (err) {
-    console.error("Error loading devices:", err);
-  }
-}
-
-
     fetchDevices();
-     const interval = setInterval(() => {
-    fetchDevices();
-  }, 5000);
+  }, [fetchDevices]);
 
-  // 🟢 cleanup
-  return () => clearInterval(interval);
-  }, []);
+  // -----------------------------
+  // AUTO REFRESH (ONLY WHEN TICK CHANGES)
+  // -----------------------------
+  useEffect(() => {
+    fetchDevices();
+  }, [refreshTick, fetchDevices]);
 
   // -----------------------------
   // FILTER LOGIC
   // -----------------------------
   const filtered = useMemo(() => {
-    const q = (query || "").trim().toLowerCase();
+    const q = query.trim().toLowerCase();
     if (!q) return devices;
 
-    return devices.filter((d) => {
-      const combined = `${d.deviceName || ""} ${d.ipAddress || ""} ${
-        d.macAddress || ""
-      } ${d.vlan || ""}`.toLowerCase();
-      return combined.includes(q);
-    });
+    return devices.filter((d) =>
+      `${d.deviceName} ${d.ipAddress} ${d.macAddress} ${d.vlan}`
+        .toLowerCase()
+        .includes(q)
+    );
   }, [query, devices]);
 
   // -----------------------------
@@ -80,9 +77,7 @@ export default function AttachedDevices() {
   );
 
   function gotoPage(p) {
-    if (p < 1) p = 1;
-    if (p > totalPages) p = totalPages;
-    setPage(p);
+    setPage(Math.min(Math.max(p, 1), totalPages));
   }
 
   return (
@@ -109,29 +104,10 @@ export default function AttachedDevices() {
             Go
           </button>
 
-          <button
-  className="btn refresh"
-  onClick={() => {
-    // manual refresh without full reload
-    const token = localStorage.getItem("authToken");
-    if (!token) return;
-
-    fetch("http://localhost:5000/api/devices", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then(res => res.json())
-      .then(json => {
-        if (json.status) setDevices(json.devices || []);
-      })
-      .catch(err => console.error(err));
-  }}
->
-  Refresh
-</button>
-
+          {/* ✅ Manual refresh uses SAME function */}
+          <button className="btn refresh" onClick={fetchDevices}>
+            Refresh
+          </button>
         </div>
       </div>
 
