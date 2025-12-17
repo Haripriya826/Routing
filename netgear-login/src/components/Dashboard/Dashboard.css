@@ -1,14 +1,4 @@
-/* =========================================================
-   src/Dashboard.css  — Final combined (updated)
-   - Dashboard layout, header, sidebar, cards, controls
-   - theme variables + dark mode
-   - Monitoring / AttachedDevices styles
-   - Configuration parent + subitems (one-by-one)
-   - Editable System Settings sizing via CSS variables
-   - + USER TABLE / UserSettings improvements so table content is always visible in dark mode
-   ========================================================= */
 
-/* THEME VARIABLES (light defaults) */
 :root{
   --bg: #f4f7fb;
   --card-bg: #ffffff;
@@ -18,6 +8,7 @@
   --accent-strong: #1f6feb;
   --border: #e6edf3;
   --radius: 10px;
+  --popover-border: rgba(96,165,250,0.45);
 
   --label-w: 120px;    /* label column width for desktop */
   --sidebar-w: 220px;  /* left nav width */
@@ -65,6 +56,7 @@
   --accent-strong: #1f6feb;
   --border: #30363d;
   --shadow-soft: 0 8px 26px rgba(0,0,0,0.45);
+  --popover-border: rgba(96,165,250,0.6);
 
   /* dark system settings tweaks */
   --sys-card-bg: #0f172a;
@@ -165,7 +157,7 @@ html, body, #root {
 }
 
 /* right header icons */
-.header-right { display:flex; justify-content:flex-end; align-items:center; gap:12px; }
+.header-right { display:flex; justify-content:flex-end;padding-right: 15px; align-items:center; gap:15px; }
 .icon-btn {
   background:transparent;
   border:none;
@@ -1012,24 +1004,49 @@ html, body, #root {
   .monitoring-full, .attached-root { border: none !important; box-shadow: none !important; background: #fff !important; color: #000 !important; }
 }
 
-/* End of Monitoring / AttachedDevices additions */
-/* USER DROPDOWN MENU */
 .user-menu {
   position: absolute;
-  top: 60px; /* below profile icon */
-  right: 20px;
+  top: 72px;
+  right: 6px;
   background: var(--card-bg);
-  border-radius: 14px;
-  padding: 14px 18px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.15);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  border-radius: 999px;
+  padding: 18px 20px;
+  width: 180px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.18);
+  border: 1.5px solid var(--popover-border);
   z-index: 9999;
-  animation: dropFade 0.25s ease;
-  width: 170px;
-  border: 1px solid rgba(0,0,0,0.08);
+  align-items: center;
 }
+
+/* 🔹 pointer border */
+.user-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 70%;
+  transform: translateX(-75%) rotate(45deg); /* ✅ FIX */
+  width: 16px;
+  height: 16px;
+  background: transparent;
+  border-left: 1.5px solid var(--popover-border);
+  border-top: 1.5px solid var(--popover-border);
+  box-sizing: border-box; /* ✅ important */
+}
+
+/* 🔹 pointer fill */
+.user-menu::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 70%;
+  transform: translateX(-75%) rotate(45deg); /* ✅ FIX */
+  width: 14px;
+  height: 14px;
+  background: var(--card-bg);
+  border-radius: 3px;
+}
+
+
 
 /* Username text */
 .user-menu .user-name {
@@ -1056,6 +1073,10 @@ html, body, #root {
   cursor: pointer;
   font-weight: 600;
   transition: 0.25s;
+  width: 100%;           /* keeps it visually centered */
+  max-width: 140px;      /* prevents overflow in pill */
+  text-align: center;
+  margin: 8px auto 0
 }
 
 .logout-btn:hover {
@@ -1075,14 +1096,31 @@ html, body, #root {
 }
 
 /* DARK MODE support */
+/* 🌙 Dark mode menu */
 .theme-dark .user-menu {
   background: #1d1f25;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(96,165,250,0.55);
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 1px rgba(96,165,250,0.35),
+    0 14px 34px rgba(0,0,0,0.75);
+}
+
+/* 🌙 Dark mode — pointer border */
+.theme-dark .user-menu::before {
+  border-left: 1.5px solid rgba(96,165,250,0.55); /* 🔵 highlight */
+  border-top: 1.5px solid rgba(96,165,250,0.55);
+
+}
+
+/* 🌙 Dark mode — pointer fill */
+.theme-dark .user-menu::after {
+   background: #1d1f25;
 }
 
 .theme-dark .user-menu .user-name {
   color: #fff;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1.5px solid rgba(255,255,255,0.1);
 }
 
 .theme-dark .logout-btn {
@@ -1369,18 +1407,7 @@ html, body, #root {
 }
 
 
-/* Dark theme */
-.theme-dark .auto-refresh-btn {
-  background: #1f2933;
-  color: #e5e7eb;
-  border-color: #374151;
-}
 
-
-.theme-dark .auto-refresh-btn.off {
-  background: #374151;
-  color: #e5e7eb;
-}
 .refresh-toggle {
   background: white;
   border: none;
@@ -1434,4 +1461,31 @@ html, body, #root {
 @keyframes spin {
   from { transform: translateX(26px) rotate(0deg); }
   to { transform: translateX(26px) rotate(360deg); }
+}
+
+
+.theme-dark .refresh-toggle {
+  background: transparent;
+}
+
+
+.theme-dark .refresh-toggle .toggle-track {
+  background: #1f2933;
+  border: 2px solid #475569;
+}
+
+.theme-dark .refresh-toggle.on .toggle-track {
+  background: #2563eb; 
+  border-color: #2563eb;
+}
+
+
+.theme-dark .refresh-toggle .toggle-thumb {
+  background: #e5e7eb;
+  color: #1f2933;
+}
+
+/* optional glow when ON */
+.theme-dark .refresh-toggle.on .toggle-track {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.35);
 }

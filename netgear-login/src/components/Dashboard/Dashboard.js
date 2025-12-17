@@ -664,13 +664,13 @@ useEffect(() => {
     );
   };
 
-  // handle VLAN type change (client side)
+  
   const onChangeVlanType = (newId) => {
     const idNum = Number(newId);
     setVlanTypeId(idNum);
   };
 
-  // --- SIDEBAR ACTION HELPERS ---
+  
   function selectDashboard() {
   setSidebarSelection("dashboard");
   setConfigExpanded(false);
@@ -687,14 +687,13 @@ useEffect(() => {
 }
 
 
-  // IMPORTANT: clicking the parent only toggles expansion now — it DOES NOT navigate.
+  
   function toggleConfiguration() {
     // configuration parent visible if canConfigure OR admin
     if (!permissions.canConfigure && !isAdmin) return;
     setConfigExpanded((s) => !s);
   }
 
-  // click a subitem -> open configuration page for that subitem
   function selectConfigSub(sub) {
   setSidebarSelection("configuration");
   setConfigExpanded(true);
