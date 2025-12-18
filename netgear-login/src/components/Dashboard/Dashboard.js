@@ -1141,6 +1141,17 @@ useEffect(() => {
         {showRebootPopup && (
   <div className="popup-overlay">
     <div className="popup-card" role="dialog" aria-modal="true">
+      
+      {/* Close (X) button */}
+      <button
+        className="popup-close"
+        onClick={() => setShowRebootPopup(false)}
+        disabled={rebooting}
+        aria-label="Close"
+      >
+        ×
+      </button>
+
       <h3>Confirm Reboot</h3>
       <p>
         Are you sure you want to reboot the router?

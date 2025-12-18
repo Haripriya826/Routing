@@ -1554,3 +1554,31 @@ html, body, #root {
     opacity: 1;
   }
 }
+.popup-card {
+  position: relative; /* IMPORTANT for absolute X button */
+}
+
+/* Close (X) button */
+.popup-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280; /* muted gray */
+}
+
+.popup-close:hover {
+  color: #111827; /* darker on hover */
+}
+
+.theme-dark .popup-close {
+  color: #9ca3af;
+}
+
+.theme-dark .popup-close:hover {
+  color: #ffffff;
+}

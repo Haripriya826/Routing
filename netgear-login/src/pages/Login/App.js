@@ -264,9 +264,14 @@ useEffect(() => {
             </button>
           </div>
 
-          <button className="submit" type="submit" disabled={locked}>
-            Log In
+          <button
+            className="submit"
+            type="submit"
+            disabled={locked}
+          >
+            {locked ? "Log In🚫" : "Log In"}
           </button>
+
 
 
           {serverMsg && (

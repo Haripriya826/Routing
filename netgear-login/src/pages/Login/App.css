@@ -301,3 +301,14 @@ html,body,#root{
   margin-top: 10px;
   text-align: center;
 }
+/* Normal state */
+.submit {
+  cursor: pointer;
+}
+
+/* Locked / disabled state */
+.submit:disabled {
+  cursor: not-allowed;   /* 🚫 symbol cursor */
+  pointer-events: none;  /* no hover, no click */
+}
+
