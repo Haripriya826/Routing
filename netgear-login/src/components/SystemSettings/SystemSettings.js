@@ -77,7 +77,7 @@ export default function SystemSettings() {
           return;
         }
 
-        const res = await fetch("http://localhost:5000/api/user/settings", {
+        const res = await fetch("https://routing-13jd.onrender.com/api/user/settings", {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -136,7 +136,7 @@ export default function SystemSettings() {
       const token = getToken();
       if (!token) throw new Error("No auth token, please login");
 
-      const res = await fetch("http://localhost:5000/api/user/settings", {
+      const res = await fetch("https://routing-13jd.onrender.com/api/user/settings", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
