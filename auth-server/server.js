@@ -48,17 +48,34 @@ const Efile = require("./models/Efile");
 // =======================
 const app = express();
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://router-mngt.vercel.app",
+  "https://routing-tp0l.onrender.com"
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "http://127.0.0.1:3000",
-      "https://routing-tp0l.onrender.com",
-      "https://router-mngt.vercel.app",
-    ],
+    origin: function (origin, callback) {
+      // allow server-to-server / curl / postman
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true,
   })
 );
+
+// 🔴 THIS LINE IS MANDATORY
+app.options("*", cors());
+
 
 app.use(express.json());
 
