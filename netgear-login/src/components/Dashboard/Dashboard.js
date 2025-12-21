@@ -31,7 +31,7 @@ export default function Dashboard() {
       localStorage.getItem("token");
 
     if (token) {
-      await fetch("http://localhost:5000/api/router/reboot", {
+      await fetch("https://routing-13jd.onrender.com/api/router/reboot", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -290,7 +290,7 @@ const fetchDash = async () => {
 
     if (!token) return;
 
-    const res = await fetch("http://localhost:5000/api/dash", {
+    const res = await fetch("https://routing-13jd.onrender.com/api/dash", {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -330,7 +330,7 @@ const fetchDash = async () => {
           return;
         }
 
-        const res = await fetch("http://localhost:5000/api/dash", {
+        const res = await fetch("https://routing-13jd.onrender.com/api/dash", {
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
         });
 
@@ -439,7 +439,7 @@ useEffect(() => {
     try {
       const token = (localStorage.getItem("authToken") || localStorage.getItem("token")) || null;
       if (token) {
-        await fetch("http://localhost:5000/api/efile/remove", {
+        await fetch("https://routing-13jd.onrender.com/api/efile/remove", {
           method: "DELETE",
           headers: { "x-auth-token": token }
         }).catch(() => {});
