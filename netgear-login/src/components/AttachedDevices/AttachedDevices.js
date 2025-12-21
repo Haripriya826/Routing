@@ -20,7 +20,7 @@ export default function AttachedDevices() {
       const token = localStorage.getItem("authToken");
       if (!token) return;
 
-      const res = await fetch("http://localhost:5000/api/devices", {
+      const res = await fetch("https://routing-13jd.onrender.com/api/devices", {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
