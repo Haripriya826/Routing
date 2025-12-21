@@ -84,7 +84,7 @@ function validatePassword(password) {
     try {
       const token = localStorage.getItem("authToken");
 
-      const res = await fetch("http://localhost:5000/api/admin/users", {
+      const res = await fetch("https://routing-13jd.onrender.com/api/admin/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -153,7 +153,7 @@ function validatePassword(password) {
     try {
       const token = localStorage.getItem("authToken");
 
-      const res = await fetch("http://localhost:5000/api/admin/create-user", {
+      const res = await fetch("https://routing-13jd.onrender.com/api/admin/create-user", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -235,7 +235,7 @@ function validatePassword(password) {
     const token = localStorage.getItem("authToken");
 
     await fetch(
-      `http://localhost:5000/api/admin/delete-user/${userToDelete._id}`,
+      `https://routing-13jd.onrender.com/api/admin/delete-user/${userToDelete._id}`,
       {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -286,7 +286,7 @@ function validatePassword(password) {
       }
 
       const res = await fetch(
-        `http://localhost:5000/api/admin/update-user/${editUser._id}`,
+        `http://:5000/api/admin/update-user/${editUser._id}`,
         {
           method: "PUT",
           headers: {
